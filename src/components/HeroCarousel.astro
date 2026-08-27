@@ -1,0 +1,486 @@
+---
+// Hero.astro — AstroWind 式静态主视觉（左文右卡，替代原轮播）
+import { ArrowUpRight, Star, Sparkles } from '@lucide/astro'
+import { sortCatalogEntries, type Catalog } from '../lib/catalog'
+import { catalogData } from '../lib/catalog-data'
+import { getCategory } from '../lib/classification'
+import { dictionaries } from '../lib/i18n'
+import { formatCompactNumber } from '../lib/catalog'
+import trendData from '../data/trend-data.json'
+
+const catalog = catalogData as Catalog
+const totalStars = catalog.repositories.reduce((sum, r) => sum + (r.stars || 0), 0)
+const categoryCount = Object.keys(catalog.stats.categories ?? {}).length
+const pluginCount = catalog.stats.fetched ?? catalog.repositories.length
+
+// 增长数据：最近 14 天曲线 + 今日新增
+const series = (trendData.countSeries ?? []) as { date: string; count: number }[]
+const last14 = series.slice(-14)
+const todayCount = series.length > 1 ? series[series.length - 1].count : 0
+const yesterdayCount = series.length > 1 ? series[series.length - 2].count : 0
+const todayDelta = todayCount - yesterdayCount
+const sparkMax = last14.length ? Math.max(...last14.map((p) => p.count), 10) : 10
+const sparkMin = last14.length ? Math.min(...last14.map((p) => p.count), 0) : 0
+const sparkSpan = Math.max(1, sparkMax - sparkMin)
+const SPW = 160
+const SPH = 36
+const sparkPoints = last14
+  .map((p, i) => {
+    const x = (i / Math.max(1, last14.length - 1)) * (SPW - 4) + 2
+    const y = SPH - 4 - ((p.count - sparkMin) / sparkSpan) * (SPH - 8)
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  .join(' ')
+
+// Top 3 热门插件（hero 右侧卡片）
+const topPlugins = sortCatalogEntries(catalog.repositories, 'stars')
+  .filter((r) => !r.archived && r.projectType !== 'application' && r.name !== 'deepseek-harness')
+  .slice(0, 3)
+
+const baseUrl = `${import.meta.env.BASE_URL.replace(/\/+$/, '')}/`
+---
+
+<section class="hero-aw" aria-label="DSH UNIVERSE">
+  <div class="hero-aw__glow hero-aw__glow--1" aria-hidden="true"></div>
+  <div class="hero-aw__glow hero-aw__glow--2" aria-hidden="true"></div>
+  <div class="hero-aw__grid" aria-hidden="true"></div>
+  <div class="container hero-aw__inner">
+    <div class="hero-aw__left">
+      <p class="mono-label" data-i18n="hero.mono">DSH UNIVERSE / 插件生态</p>
+      <h1 class="hero-aw__title">
+        <span class="hero-aw__title-en" data-i18n="poster.titleEn">DSH</span>
+        <span class="hero-aw__title-zh" data-i18n="poster.titleZh">生态宇宙</span>
+      </h1>
+      <p class="hero-aw__slogan">
+        <span data-i18n="poster.slogan1">DeepSeek Harness 生态宇宙</span>
+        <span class="hero-aw__dot" aria-hidden="true">·</span>
+        <span data-i18n="poster.slogan2">万物皆插件</span>
+      </p>
+      <p class="hero-aw__sub" data-i18n="poster.sub">
+        Plugins, skills, and apps for the DeepSeek Harness ecosystem — one universe, every possibility.
+      </p>
+            <dl class="hero-aw__stats">
+        <div class="hero-aw__stat">
+          <dt data-i18n="poster.plugins">收录插件</dt>
+          <dd>{pluginCount}</dd>
+        </div>
+        <div class="hero-aw__stat">
+          <dt data-i18n="poster.categories">功能/10类</dt>
+          <dd>{categoryCount}</dd>
+        </div>
+        <div class="hero-aw__stat">
+          <dt data-i18n="poster.stars">Stars</dt>
+          <dd>{formatCompactNumber(totalStars)}</dd>
+        </div>
+        <div class="hero-aw__stat hero-aw__stat--growth">
+          <dt data-i18n="poster.growth">近14days</dt>
+          <dd class="hero-aw__growth">
+            <svg width={SPW} height={SPH} viewBox={`0 0 ${SPW} ${SPH}`} aria-hidden="true">
+              <polyline
+                points={sparkPoints}
+                fill="none"
+                stroke="var(--accent)"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle
+                cx={SPW - 2}
+                cy={SPH - 4 - ((todayCount - sparkMin) / sparkSpan) * (SPH - 8)}
+                r="3"
+                fill="var(--accent)"
+              />
+            </svg>
+            <span class="hero-aw__delta">+{Math.max(0, todayDelta)}</span>
+          </dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="hero-aw__right">
+      <svg class="hero-aw__orb" viewBox="0 0 400 400" aria-hidden="true">
+        <defs>
+          <radialGradient id="orb-grad" cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.65" />
+            <stop offset="55%" stop-color="var(--accent)" stop-opacity="0.16" />
+            <stop offset="100%" stop-color="transparent" />
+          </radialGradient>
+        </defs>
+        <circle cx="200" cy="200" r="165" fill="url(#orb-grad)" />
+        <ellipse cx="200" cy="200" rx="195" ry="72" fill="none" stroke="var(--accent)" stroke-opacity="0.35" stroke-width="1.2" transform="rotate(-18 200 200)" />
+        <ellipse cx="200" cy="200" rx="130" ry="225" fill="none" stroke="var(--accent)" stroke-opacity="0.20" stroke-width="1" transform="rotate(26 200 200)" />
+        <circle cx="92" cy="118" r="3" fill="var(--accent)" opacity="0.75" />
+        <circle cx="312" cy="88" r="2" fill="var(--accent-alt)" opacity="0.65" />
+        <circle cx="332" cy="262" r="2.5" fill="var(--accent)" opacity="0.55" />
+        <circle cx="78" cy="302" r="2" fill="var(--accent-alt)" opacity="0.55" />
+        <circle cx="210" cy="52" r="1.8" fill="var(--accent)" opacity="0.5" />
+      </svg>
+      <p class="hero-aw__right-label">
+        <Sparkles size={14} aria-hidden="true" />
+        <span data-i18n="hero.topLabel">TOP 热门</span>
+      </p>
+      <div class="hero-aw__cards">
+        {topPlugins.map((repo, i) => {
+          const category = getCategory(repo.category)
+          return (
+            <a class="hero-aw__card" href={`${baseUrl}plugins/${repo.slug}`}>
+              <span class="hero-aw__card-rank">{i + 1}</span>
+              <span class="hero-aw__card-main">
+                <span class="hero-aw__card-name">{repo.name}</span>
+                <span class="hero-aw__card-meta">
+                  <span class="hero-aw__card-cat" style={`--category-color: ${category.color}`}>
+                    {(dictionaries.en[`category.${category.id}`] as string | undefined) ?? category.label}
+                  </span>
+                  <span class="hero-aw__card-stars">
+                    <Star size={12} fill="currentColor" aria-hidden="true" />
+                    {formatCompactNumber(repo.stars)}
+                  </span>
+                </span>
+              </span>
+              <ArrowUpRight class="hero-aw__card-arrow" size={18} aria-hidden="true" />
+            </a>
+          )
+        })}
+      </div>
+      <p class="hero-aw__foot">
+        <span data-i18n="hero.live">数据每 30 /10钟同步自 GitHub</span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero-aw {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--canvas);
+    border: 1px solid var(--outline);
+    box-shadow: var(--shadow-card);
+  }
+
+  .hero-aw__glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(60px);
+  }
+  .hero-aw__glow--1 {
+    width: 420px;
+    height: 420px;
+    top: -120px;
+    right: -80px;
+    background: var(--glow);
+  }
+  .hero-aw__glow--2 {
+    width: 320px;
+    height: 320px;
+    bottom: -120px;
+    left: -60px;
+    background: rgba(109, 40, 217, 0.10);
+  }
+  .hero-aw__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(var(--outline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--outline) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.18;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+  }
+
+  .hero-aw__inner {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 48px;
+    align-items: center;
+    padding-block: 64px;
+  }
+
+  .hero-aw__left {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-aw__title {
+    font-size: clamp(44px, 6.5vw, 72px);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+    margin: 10px 0 12px;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .hero-aw__title-en {
+    font-size: 1.15em;
+    letter-spacing: -0.02em;
+  }
+  .hero-aw__title-zh {
+    font-size: 1em;
+    font-weight: 800;
+  }
+
+  .hero-aw__slogan {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--body);
+    margin: 0 0 14px;
+    line-height: 1.6;
+  }
+  .hero-aw__slogan span {
+    white-space: normal;
+  }
+  .hero-aw__dot {
+    color: var(--accent);
+    margin: 0 4px;
+  }
+
+  .hero-aw__sub {
+    max-width: 560px;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--mute);
+    margin: 0 0 28px;
+  }
+
+  .hero-aw__cta {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 36px;
+  }
+
+  .hero-aw__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1;
+    padding: 14px 30px;
+    transition: all 0.2s ease-in;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .hero-aw__btn--primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: #ffffff;
+    box-shadow: 0 8px 20px -8px var(--glow);
+  }
+  .hero-aw__btn--primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px -8px var(--glow);
+    filter: brightness(1.06);
+  }
+
+  .hero-aw__btn--ghost {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--outline-strong);
+  }
+  .hero-aw__btn--ghost:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .hero-aw__stats {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: 28px;
+    margin: 0;
+    padding-top: 28px;
+    border-top: 1px solid var(--outline);
+    width: 100%;
+    max-width: 640px;
+  }
+  .hero-aw__stat dt {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--mute);
+    margin-bottom: 4px;
+  }
+  .hero-aw__stat dd {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--ink);
+    margin: 0;
+  }
+  .hero-aw__stat--growth dd {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .hero-aw__delta {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .hero-aw__right {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    position: relative;
+  }
+
+  .hero-aw__orb {
+    position: absolute;
+    right: -70px;
+    top: 40%;
+    transform: translateY(-50%);
+    width: 560px;
+    height: 560px;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.9;
+  }
+  .hero-aw__orb ellipse {
+    transform-origin: 200px 200px;
+    animation: orb-spin 48s linear infinite;
+  }
+  .hero-aw__orb ellipse:last-of-type {
+    animation-duration: 72s;
+    animation-direction: reverse;
+  }
+  @keyframes orb-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .hero-aw__right-label,
+  .hero-aw__cards,
+  .hero-aw__foot {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-aw__right-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin: 0;
+  }
+  .hero-aw__right-label svg {
+    color: var(--accent);
+  }
+
+  .hero-aw__cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-aw__card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    border-radius: var(--radius);
+    background: var(--canvas-card);
+    border: 1px solid var(--outline);
+    box-shadow: var(--shadow-card);
+    text-decoration: none;
+    transition: all 0.2s ease-in;
+  }
+  .hero-aw__card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--outline-strong);
+  }
+
+  .hero-aw__card-rank {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    min-width: 28px;
+  }
+
+  .hero-aw__card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+  .hero-aw__card-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hero-aw__card-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hero-aw__card-cat {
+    font-size: 12px;
+    color: var(--category-color);
+    background: color-mix(in srgb, var(--category-color) 12%, transparent);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .hero-aw__card-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--mute);
+  }
+  .hero-aw__card-arrow {
+    color: var(--mute);
+    transition: color 0.2s ease-in;
+  }
+  .hero-aw__card:hover .hero-aw__card-arrow {
+    color: var(--accent-alt);
+  }
+
+  .hero-aw__foot {
+    font-size: 12px;
+    color: var(--mute);
+    margin: 0;
+    padding-left: 2px;
+  }
+
+  @media (max-width: 900px) {
+    .hero-aw__inner {
+      grid-template-columns: 1fr;
+      gap: 32px;
+      padding-block: 40px;
+    }
+    .hero-aw__stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .hero-aw__orb {
+      width: 320px;
+      height: 320px;
+      right: -40px;
+      opacity: 0.5;
+    }
+    .hero-aw__right {
+      overflow: hidden;
+    }
+  }
+</style>

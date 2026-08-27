@@ -1,0 +1,780 @@
+---
+import { Moon, Sun } from '@lucide/astro'
+import { Github } from 'simple-icons-astro'
+import AdSlot from '../components/AdSlot.astro'
+
+import { DEFAULT_LOCALE, dictionaries, LOCALE_STORAGE_KEY, SUPPORTED_LOCALES } from '../lib/i18n'
+import {
+  getCanonicalUrl,
+  HOME_DESCRIPTION,
+  HOME_TITLE,
+  serializeJsonLd,
+} from '../lib/seo'
+import '../styles/global.css'
+
+interface Props {
+  title?: string
+  description?: string
+  structuredData?: Record<string, unknown>
+  pageTitleKey?: string
+  pageTitleParams?: Record<string, string | number>
+}
+
+const {
+  title = HOME_TITLE,
+  description = HOME_DESCRIPTION,
+  structuredData,
+  pageTitleKey = 'site.pageTitle.home',
+  pageTitleParams = {},
+} = Astro.props
+// 服务端渲染用英文(默认语言),让爬虫/无JS访客看到英文 title
+const serverTitle = (dictionaries.en?.[pageTitleKey] ?? title).replace(
+  /\{([a-zA-Z][\w-]*)\}/g,
+  (match, name) => Object.prototype.hasOwnProperty.call(pageTitleParams, name) ? String(pageTitleParams[name]) : match,
+)
+const baseUrl = `${import.meta.env.BASE_URL.replace(/\/+$/, '')}/`
+const canonicalUrl = getCanonicalUrl(Astro.url)
+  ? JSON.stringify({ token: 'cefc4fa1bb984a789124d58b900f13b8' })
+  : null
+const serializedDictionaries = JSON.stringify(dictionaries).replace(/</g, '\\u003c')
+const THEME_STORAGE_KEY = 'dsh-theme'
+const COLOR_STORAGE_KEY = 'dsh-color'
+---
+
+<!doctype html>
+<html lang="zh-CN" data-theme="dark" data-color="purple">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="theme-color" content="#030620" />
+    <script is:inline define:vars={{ THEME_STORAGE_KEY, COLOR_STORAGE_KEY }}>
+      try {
+        const saved = localStorage.getItem(THEME_STORAGE_KEY)
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        const theme = saved ?? (systemDark ? 'dark' : 'light')
+        document.documentElement.dataset.theme = theme
+        const savedColor = localStorage.getItem(COLOR_STORAGE_KEY)
+        const color = savedColor === 'blue' ? 'blue' : 'purple'
+        document.documentElement.dataset.color = color
+        const metaColor = { 'light-blue': '#ffffff', 'dark-blue': '#030620', 'light-purple': '#ffffff', 'dark-purple': '#17122b' }
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', metaColor[theme + '-' + color] ?? '#030620')
+      } catch {}
+    </script>
+    <meta name="description" content={description} />
+    <meta name="keywords" content="DeepSeek Harness plugins, DSH plugin marketplace, DeepSeek Harness skills, AI agent plugins, dsh-plugin, DSH UNIVERSE, open source AI plugins" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <meta property="og:title" content={serverTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="DSH UNIVERSE" />
+    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:image" content={`${baseUrl}og-default.png`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={serverTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={`${baseUrl}og-default.png`} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" href={`${baseUrl}favicon.svg`} type="image/svg+xml" />
+    <title>{serverTitle}</title>
+    {structuredData && (
+      <script is:inline type="application/ld+json" set:html={serializeJsonLd(structuredData)}></script>
+    )}
+  </head>
+  <script id="site-i18n-data" type="application/json" set:html={serializedDictionaries} is:inline></script>
+  <script is:inline define:vars={{ DEFAULT_LOCALE, LOCALE_STORAGE_KEY, SUPPORTED_LOCALES }}>
+    (function(){
+      const dicts = JSON.parse(document.getElementById('site-i18n-data').textContent)
+      const resolveLocale = (v) => {
+        const n = String(v||'').trim().toLowerCase()
+        if (n==='zh-cn'||n.startsWith('zh-')) return 'zh-CN'
+        if (n==='en'||n.startsWith('en-')) return 'en'
+        if (n==='ja'||n.startsWith('ja-')) return 'ja'
+        return DEFAULT_LOCALE
+      }
+      let loc = DEFAULT_LOCALE
+      try { loc = localStorage.getItem(LOCALE_STORAGE_KEY) || DEFAULT_LOCALE } catch {}
+      if (!SUPPORTED_LOCALES.includes(resolveLocale(loc))) loc = DEFAULT_LOCALE
+      else loc = resolveLocale(loc)
+      document.documentElement.lang = loc
+      const t = (key, params={}) => {
+        const tpl = dicts[loc]?.[key] ?? dicts[DEFAULT_LOCALE]?.[key] ?? key
+        return tpl.replace(/\{([a-zA-Z][\w-]*)\}/g, (m,n) => Object.prototype.hasOwnProperty.call(params,n)?String(params[n]):m)
+      }
+      const nodes = (root,sel) => { const m=root instanceof Element&&root.matches(sel)?[root]:[]; return [...m,...root.querySelectorAll(sel)] }
+      const applyI18n = (root=document) => {
+        nodes(root,'[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n) })
+        for (const [da,attr] of [['data-i18n-aria-label','aria-label'],['data-i18n-title','title'],['data-i18n-placeholder','placeholder']]) {
+          nodes(root,`[${da}]`).forEach(el => { el.setAttribute(attr, t(el.getAttribute(da))) })
+        }
+        const pk = root.body?.dataset?.i18nPageTitle
+        if (root===document && pk) {
+          let pp={}; try{pp=JSON.parse(root.body.dataset.i18nPageTitleParams||'{}')}catch{}
+          document.title = t(pk,pp)
+        }
+      }
+      window.__dshI18nInit = applyI18n
+      window.__dshI18nLocale = loc
+    })()
+  </script>
+  <body data-i18n-page-title={pageTitleKey} data-i18n-page-title-params={JSON.stringify(pageTitleParams)}>
+    <script is:inline>document.addEventListener('DOMContentLoaded', () => window.__dshI18nInit?.(document))</script>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a
+          class="brand"
+          href={baseUrl}
+          aria-label="Back to DSH plugin marketplace home"
+          data-i18n-aria-label="site.homeAria"
+        >
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="27" height="27">
+              <circle cx="12" cy="12" r="6.5" fill="#ffffff" fill-opacity="0.95" />
+              <ellipse cx="12" cy="12" rx="11" ry="4.2" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2" transform="rotate(-18 12 12)" />
+              <ellipse cx="12" cy="12" rx="6.8" ry="2.6" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="1" transform="rotate(62 12 12)" />
+              <circle cx="19.5" cy="5.5" r="1.7" fill="#ffffff" fill-opacity="0.9" />
+            </svg>
+          </span>
+          <span class="brand__text">
+            <b class="brand__name">DSH</b>
+            <span class="brand__sub">UNIVERSE</span>
+          </span>
+        </a>
+        <nav aria-label="主导航" data-i18n-aria-label="nav.main">
+          <div class="language-switcher" role="group" aria-label="切换语言" data-i18n-aria-label="language.label">
+            <button
+              class="language-option"
+              type="button"
+              data-locale="zh-CN"
+              aria-label="中文"
+              title="中文"
+              aria-pressed="false"
+            ><span class="language-option__glyph" aria-hidden="true">中</span></button>
+            <button
+              class="language-option"
+              type="button"
+              data-locale="en"
+              aria-label="English"
+              title="English"
+              aria-pressed="true"
+            ><span class="language-option__glyph" aria-hidden="true">EN</span></button>
+            <button
+              class="language-option"
+              type="button"
+              data-locale="ja"
+              aria-label="日本語"
+              title="日本語"
+              aria-pressed="false"
+            ><span class="language-option__glyph" aria-hidden="true">日</span></button>
+          </div>
+          <button
+            id="theme-toggle"
+            class="icon-button theme-toggle"
+            type="button"
+            data-theme-toggle
+            data-theme="dark"
+            aria-label="Switch to light mode"
+            title="Switch to light mode"
+            data-i18n-aria-label="theme.switchToLight"
+            data-i18n-title="theme.switchToLight"
+            aria-pressed="false"
+          >
+            <span class="theme-toggle__sun" aria-hidden="true" hidden>
+              <Sun size={17} stroke-width={1.8} />
+            </span>
+            <span class="theme-toggle__moon" aria-hidden="true">
+              <Moon size={17} stroke-width={1.8} />
+            </span>
+          </button>
+          <div class="color-switcher" role="group" aria-label="Switch color theme" data-i18n-aria-label="theme.colorSwitch">
+            <button
+              class="color-dot color-dot--blue"
+              type="button"
+              data-color-btn="blue"
+              aria-label="Blue theme"
+              title="Blue theme"
+              aria-pressed="true"
+            ></button>
+            <button
+              class="color-dot color-dot--purple"
+              type="button"
+              data-color-btn="purple"
+              aria-label="Purple theme"
+              title="Purple theme"
+              aria-pressed="false"
+            ></button>
+          </div>
+          <a
+            class="nav-link"
+            href="/skills"
+            data-i18n="nav.skills"
+            data-i18n-aria-label="nav.skills"
+          >技能</a>
+          <a
+            class="nav-link nav-link--journal"
+            href="/journal"
+            data-i18n="nav.journal"
+            data-i18n-aria-label="nav.journal"
+          >Journal</a>
+          
+          <a
+            class="nav-link"
+            href="/members"
+            data-i18n="nav.members"
+            data-i18n-aria-label="nav.members"
+          >Members</a>
+          <a
+            class="nav-link"
+            href="/submit"
+            data-i18n="nav.submit"
+            data-i18n-aria-label="nav.submit"
+          >Submit</a>
+          <a
+            class="icon-button"
+            href="https://github.com/dsh-universe/dsh-universe-plugins"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="View source"
+            title="View source"
+            data-i18n-aria-label="nav.source"
+            data-i18n-title="nav.source"
+          >
+            <Github size={17} aria-hidden="true" />
+          </a>
+        </nav>
+      </div>
+    </header>
+    <main>
+      <div class="container">
+        <AdSlot slot="top-banner" />
+      </div>
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="site-footer__glow site-footer__glow--1" aria-hidden="true"></div>
+      <div class="site-footer__glow site-footer__glow--2" aria-hidden="true"></div>
+      <div class="site-footer__grid" aria-hidden="true"></div>
+      <div class="container site-footer__inner">
+              <div class="site-footer__grid-layout">
+                <div class="site-footer__col site-footer__col--brand">
+                  <div class="site-footer__brand">
+                    <span class="brand__mark" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="27" height="27">
+                        <circle cx="12" cy="12" r="6.5" fill="#ffffff" fill-opacity="0.95" />
+                        <ellipse cx="12" cy="12" rx="11" ry="4.2" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1.2" transform="rotate(-18 12 12)" />
+                        <ellipse cx="12" cy="12" rx="6.8" ry="2.6" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="1" transform="rotate(62 12 12)" />
+                        <circle cx="19.5" cy="5.5" r="1.7" fill="#ffffff" fill-opacity="0.9" />
+                      </svg>
+                    </span>
+                    <p class="site-footer__brand-name">DSH UNIVERSE</p>
+                    <p class="site-footer__slogan" data-i18n="home.heroLine2">A continuously updated, searchable plugin directory for the DSH ecosystem.</p>
+                  </div>
+                </div>
+                <div class="site-footer__col">
+                  <p class="site-footer__col-title" data-i18n="footer.content">Content</p>
+                  <a href="/" data-i18n="nav.plugins">Plugin Marketplace</a>
+                  <a href="/skills" data-i18n="nav.skills">Skills Directory</a>
+                  <a href="/news" data-i18n="nav.news">AI Intel</a>
+                  <a href="/journal" data-i18n="nav.journal">Universe Notes</a>
+                </div>
+                <div class="site-footer__col">
+                  <p class="site-footer__col-title" data-i18n="footer.about">About</p>
+                  <a href="/about" data-i18n="nav.about">About Us</a>
+                  <a href="/members" data-i18n="nav.members">Members</a>
+                  <a href="/submit" data-i18n="nav.submit">Submit Plugin</a>
+                  <a href="/privacy" data-i18n="nav.privacy">Privacy Policy</a>
+                  <a href="/terms" data-i18n="nav.terms">Terms of Service</a>
+                </div>
+                <div class="site-footer__col">
+                                  <p class="site-footer__col-title" data-i18n="footer.ecosystem">Ecosystem</p>
+                                  <a href="https://github.com/dsh-universe/dsh-universe" target="_blank" rel="noreferrer">GitHub</a>
+                                  <a href="https://www.npmjs.com/package/@dsh-universe/cli" target="_blank" rel="noreferrer">npm</a>
+                                  <a href="https://pypi.org/project/dsh-universe/" target="_blank" rel="noreferrer">PyPI</a>
+                                  <a href="https://duink.com" target="_blank" rel="noreferrer">DSH Universe</a>
+                                </div>
+              </div>
+              <div class="site-footer__bottom">
+                <p>
+                  <span class="site-footer__bottom-brand">DSH UNIVERSE</span>
+                  <span aria-hidden="true"> · </span>
+                  <span>© 2026</span>
+                  <span aria-hidden="true"> · </span>
+                  <span data-i18n="footer.source">Data comes from GitHub Topics. A listing is not a review or endorsement of compatibility or security.</span>
+                </p>
+              </div>
+            </div>
+              </footer>
+    <script is:inline define:vars={{ DEFAULT_LOCALE, LOCALE_STORAGE_KEY, SUPPORTED_LOCALES, THEME_STORAGE_KEY }}>
+      // Reuse head i18n init; this script handles events + dshI18n API
+      const dicts = JSON.parse(document.getElementById('site-i18n-data').textContent)
+      const resolveLocale = (v) => { const n=String(v||'').trim().toLowerCase(); if(n==='zh-cn'||n.startsWith('zh-'))return'zh-CN'; if(n==='en'||n.startsWith('en-'))return'en'; if(n==='ja'||n.startsWith('ja-'))return'ja'; return DEFAULT_LOCALE }
+      let currentLocale = window.__dshI18nLocale || DEFAULT_LOCALE
+      const getParams = (el) => Object.fromEntries(Array.from(el.attributes).filter(a=>a.name.startsWith('data-i18n-param-')).map(a=>[a.name.slice('data-i18n-param-'.length),a.value]))
+      const t = (key,params={}) => { const tpl=dicts[currentLocale]?.[key]??dicts[DEFAULT_LOCALE]?.[key]??key; return tpl.replace(/\{([a-zA-Z][\w-]*)\}/g,(m,n)=>Object.prototype.hasOwnProperty.call(params,n)?String(params[n]):m) }
+      const relativeDate = (v) => { const d=new Date(v); if(Number.isNaN(d.getTime()))return t('date.unknown'); const days=Math.max(0,Math.floor((Date.now()-d.getTime())/86400000)); if(days===0)return t('date.today'); if(days<30)return t('date.daysAgo',{count:days}); if(days<365)return t('date.monthsAgo',{count:Math.floor(days/30)}); return t('date.yearsAgo',{count:Math.floor(days/365)}) }
+      const absoluteDate = (v,incTime=false) => { const d=new Date(v); if(Number.isNaN(d.getTime()))return t('date.unknown'); const loc=currentLocale==='zh-CN'?'zh-CN':currentLocale==='ja'?'ja-JP':'en-US'; return new Intl.DateTimeFormat(loc,{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit',...(incTime?{hour:'2-digit',minute:'2-digit',hour12:false}:{})}).format(d) }
+      const nodes = (root,sel) => { const m=root instanceof Element&&root.matches(sel)?[root]:[]; return [...m,...root.querySelectorAll(sel)] }
+      const translate = (root=document) => {
+        nodes(root,'[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n,getParams(el))})
+        for(const[da,attr]of[['data-i18n-aria-label','aria-label'],['data-i18n-title','title'],['data-i18n-placeholder','placeholder']]){nodes(root,`[${da}]`).forEach(el=>{el.setAttribute(attr,t(el.getAttribute(da)))})}
+        nodes(root,'[data-i18n-relative-date]').forEach(el=>{el.textContent=relativeDate(el.dataset.i18nRelativeDate)})
+        nodes(root,'[data-i18n-date]').forEach(el=>{el.textContent=absoluteDate(el.dataset.i18nDate,el.hasAttribute('data-i18n-date-time'))})
+        nodes(root,'[data-i18n-validation-title]').forEach(el=>{const s=t(`validation.status.${el.dataset.i18nValidationTitle}`);el.setAttribute('title',t('card.validationTitle',{status:s}))})
+        nodes(root,'[data-i18n-topic-list]').forEach(el=>{let tp=[];try{tp=JSON.parse(el.dataset.i18nTopicList||'[]')}catch{};el.textContent=tp.length>0?tp.join(currentLocale==='en'?', ':'、'):t('detail.noMatchedTags')})
+        const pk=root.body?.dataset?.i18nPageTitle;if(root===document&&pk){let pp={};try{pp=JSON.parse(root.body.dataset.i18nPageTitleParams||'{}')}catch{};const pg=t(pk,pp);document.title=pg;document.querySelector('meta[property="og:title"]')?.setAttribute('content',pg);document.querySelector('meta[name="twitter:title"]')?.setAttribute('content',pg)}
+      }
+      const setLocale = (locale,persist=true) => { currentLocale=SUPPORTED_LOCALES.includes(resolveLocale(locale))?resolveLocale(locale):DEFAULT_LOCALE; document.documentElement.lang=currentLocale; languageButtons.forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.locale===currentLocale))}); if(persist){try{localStorage.setItem(LOCALE_STORAGE_KEY,currentLocale)}catch{}}; translate(document); document.dispatchEvent(new CustomEvent('dsh:locale-change',{detail:{locale:currentLocale}})) }
+      window.dshI18n = { get locale(){return currentLocale}, t, translate, relativeDate, absoluteDate, setLocale }
+      const languageButtons = Array.from(document.querySelectorAll('[data-locale]'))
+      languageButtons.forEach(b=>{b.addEventListener('click',()=>setLocale(b.dataset.locale))})
+
+      const themeToggle = document.getElementById('theme-toggle')
+      const themeToggleSun = themeToggle?.querySelector('.theme-toggle__sun')
+      const themeToggleMoon = themeToggle?.querySelector('.theme-toggle__moon')
+      const themeColorMeta = document.querySelector('meta[name="theme-color"]')
+      const siteHeader = document.querySelector('.site-header')
+      const updateThemeControl = (theme) => {
+        const labelKey = theme === 'light' ? 'theme.switchToDark' : 'theme.switchToLight'
+        themeToggle?.setAttribute('data-i18n-aria-label', labelKey)
+        themeToggle?.setAttribute('data-i18n-title', labelKey)
+        themeToggle?.setAttribute('aria-label', t(labelKey))
+        themeToggle?.setAttribute('title', t(labelKey))
+      }
+
+      const applyTheme = (theme, persist = true) => {
+        const nextTheme = theme === 'light' ? 'light' : 'dark'
+        document.documentElement.dataset.theme = nextTheme
+        themeToggle?.setAttribute('data-theme', nextTheme)
+        themeToggle?.setAttribute('aria-pressed', String(nextTheme === 'light'))
+        const _col = document.documentElement.dataset.color || 'blue'
+        const _metaMap = { 'light-blue': '#ffffff', 'dark-blue': '#030620', 'light-purple': '#ffffff', 'dark-purple': '#17122b' }
+        themeColorMeta?.setAttribute('content', _metaMap[nextTheme + '-' + _col] ?? '#030620')
+        if (themeToggleSun) {
+          themeToggleSun.hidden = nextTheme !== 'light'
+          themeToggleSun.style.display = nextTheme === 'light' ? 'inline-flex' : 'none'
+        }
+        if (themeToggleMoon) {
+          themeToggleMoon.hidden = nextTheme !== 'dark'
+          themeToggleMoon.style.display = nextTheme === 'dark' ? 'inline-flex' : 'none'
+        }
+        updateThemeControl(nextTheme)
+        if (persist) {
+          try { localStorage.setItem(THEME_STORAGE_KEY, nextTheme) } catch {}
+        }
+      }
+
+      themeToggle?.addEventListener('click', () => {
+        applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light')
+      })
+      document.addEventListener('dsh:locale-change', () => {
+        updateThemeControl(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
+      })
+      let savedTheme = null
+      try { savedTheme = localStorage.getItem(THEME_STORAGE_KEY) } catch {}
+      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      applyTheme(savedTheme ?? (systemDark ? 'dark' : 'light'), false)
+
+      // 色系切换（蓝 / 紫）
+      const colorButtons = document.querySelectorAll('[data-color-btn]')
+      const syncColorButtons = (color) => {
+        colorButtons.forEach((btn) => btn.setAttribute('aria-pressed', String(btn.dataset.colorBtn === color)))
+      }
+      colorButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const color = btn.dataset.colorBtn || 'blue'
+          document.documentElement.dataset.color = color
+          syncColorButtons(color)
+          try { localStorage.setItem(COLOR_STORAGE_KEY, color) } catch {}
+          const _t = document.documentElement.dataset.theme || 'dark'
+          const _m2 = { 'light-blue': '#ffffff', 'dark-blue': '#030620', 'light-purple': '#ffffff', 'dark-purple': '#17122b' }
+          themeColorMeta?.setAttribute('content', _m2[_t + '-' + color] ?? '#030620')
+        })
+      })
+      syncColorButtons(document.documentElement.dataset.color || 'purple')
+      // 初始翻译:按当前语言整页一致渲染(SSG 英文 + localStorage 语言)
+      translate(document)
+    </script>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    position: sticky;
+    z-index: 20;
+    top: 0;
+    border-bottom: 1px solid var(--header-border);
+    background: var(--header-background);
+    backdrop-filter: blur(14px);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .brand__mark {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 4px 14px -4px var(--glow);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .brand__mark b {
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    font-family: var(--font-mono);
+  }
+  .brand__mark svg {
+    display: block;
+  }
+  .brand__text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    line-height: 1.05;
+  }
+  .brand__name {
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    color: var(--ink);
+  }
+  .brand__sub {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.34em;
+    color: var(--mute);
+  }
+
+  .brand__name {
+    font-size: 20px;
+    line-height: 20px;
+  }
+
+  .site-header nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: var(--body);
+    font-size: 13.5px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  .nav-link:hover {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+
+  .language-switcher {
+    display: grid;
+    grid-template-columns: repeat(3, 30px);
+    align-items: center;
+    height: 40px;
+    border: 1px solid var(--outline);
+    border-radius: 9999px;
+    color: var(--body);
+    overflow: hidden;
+  }
+
+  .language-option {
+    display: grid;
+    width: 30px;
+    height: 100%;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  .language-option + .language-option {
+    border-left: 1px solid var(--outline);
+  }
+
+  .language-option:hover {
+    background: var(--canvas-soft);
+    color: var(--ink);
+  }
+
+  .language-option[aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--canvas);
+  }
+
+  .language-option__glyph {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .site-footer {
+    position: relative;
+    margin-top: 32px;
+    overflow: hidden;
+    border-top: 1px solid var(--outline);
+    background: linear-gradient(180deg, var(--canvas) 0%, var(--canvas-card) 100%);
+    color: var(--mute);
+  }
+
+  .site-footer__glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(70px);
+  }
+
+  .site-footer__glow--1 {
+    top: -120px;
+    left: 8%;
+    width: 340px;
+    height: 260px;
+    background: var(--accent);
+    opacity: 0.18;
+  }
+
+  .site-footer__glow--2 {
+    right: 4%;
+    bottom: -140px;
+    width: 380px;
+    height: 300px;
+    background: var(--accent-strong);
+    opacity: 0.15;
+  }
+
+  .site-footer__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--outline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--outline) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse at 50% 120%, #000 0%, transparent 70%);
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  .site-footer__inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    padding-block: 60px 44px;
+    font-size: 13px;
+  }
+
+  .site-footer p {
+    margin: 0;
+  }
+
+  .site-footer__brand {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .site-footer__brand-name {
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+
+  .site-footer__slogan {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .site-footer__grid-layout {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding-inline: 16px;
+      width: 100%;
+    }
+
+    .site-footer__col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .site-footer__col--brand {
+      gap: 16px;
+      padding-inline: 16px;
+    }
+
+    .site-footer__col-title {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin: 0 0 4px;
+    }
+
+    .site-footer__col a {
+      color: var(--body);
+      font-size: 13px;
+      text-decoration: none;
+      transition: color 160ms ease;
+      width: fit-content;
+    }
+
+    .site-footer__col a:hover {
+      color: var(--accent);
+    }
+
+    .site-footer__desc {
+        color: var(--mute);
+        font-size: 12.5px;
+        line-height: 1.6;
+        margin: 0;
+        max-width: 260px;
+      }
+
+      .site-footer__desc-indent {
+        padding-left: 2em;
+        display: inline-block;
+      }
+
+  .site-footer__bottom {
+    width: 100%;
+    padding-top: 22px;
+    border-top: 1px solid var(--outline);
+    text-align: center;
+  }
+
+  .site-footer__bottom p {
+    margin: 0;
+    color: var(--mute);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .site-footer__bottom-brand {
+    color: var(--body);
+    font-weight: 600;
+  }
+
+  @media (max-width: 760px) {
+      .site-footer__inner {
+        grid-template-columns: 1fr;
+        gap: 22px;
+        text-align: left;
+      }
+
+      .site-footer__grid-layout {
+              grid-template-columns: repeat(2, 1fr);
+              gap: 24px;
+            }
+            .site-footer__col--brand {
+                          grid-column: auto;
+                          text-align: left;
+                        }
+    }
+
+  @media (max-width: 767px) {
+    .site-header__inner {
+      gap: 8px;
+    }
+
+    /* 手机端：只保留 logo + 语言/色系/主题切换 + GitHub 图标，无文字导航 */
+        .nav-link {
+          display: none;
+        }
+
+        .language-switcher {
+      height: 36px;
+    }
+    .language-switcher .language-option {
+      width: 26px;
+    }
+
+    .brand {
+      flex: 0 1 auto;
+      min-width: 0;
+    }
+    .brand__text {
+      display: none;
+    }
+
+    .site-footer__inner {
+      display: grid;
+      padding-block: 32px;
+    }
+  }
+
+  .color-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border: 1px solid var(--outline);
+    border-radius: 999px;
+    background: var(--canvas-soft);
+  }
+  .color-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.2s ease-in;
+  }
+  .color-dot--blue {
+    background: #0161ef;
+  }
+  .color-dot--purple {
+    background: #7c3aed;
+  }
+  .color-dot[aria-pressed='true'] {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 2px var(--canvas-soft), 0 0 0 3.5px var(--ink);
+  }
+  .color-dot:hover {
+    transform: scale(1.1);
+  }
+
+</style>

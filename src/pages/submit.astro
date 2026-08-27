@@ -1,0 +1,329 @@
+---
+import { ArrowUpRight } from '@lucide/astro'
+import { Github } from 'simple-icons-astro'
+import TrendChart from '../components/TrendChart.astro'
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+// TODO: 上线前替换为我们的 GitHub 仓库 issue 地址
+const SUBMIT_ISSUE_URL = 'https://github.com/dsh-universe/dsh-universe-plugins/issues/new'
+---
+
+<BaseLayout pageTitleKey="submit.pageTitle">
+  <div class="container">
+        <section class="submit-hero">
+          <div class="submit-hero__glow submit-hero__glow--1" aria-hidden="true"></div>
+          <div class="submit-hero__glow submit-hero__glow--2" aria-hidden="true"></div>
+          <div class="submit-hero__grid" aria-hidden="true"></div>
+          <svg class="submit-hero__orb" viewBox="0 0 320 320" aria-hidden="true">
+            <defs>
+              <radialGradient id="sbh-orb" cx="35%" cy="30%" r="80%">
+                <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.5" />
+                <stop offset="60%" stop-color="var(--accent)" stop-opacity="0.14" />
+                <stop offset="100%" stop-color="transparent" />
+              </radialGradient>
+            </defs>
+            <circle cx="160" cy="160" r="140" fill="url(#sbh-orb)" />
+            <ellipse cx="160" cy="160" rx="160" ry="60" fill="none" stroke="var(--accent)" stroke-opacity="0.35" stroke-width="1.2" transform="rotate(-16 160 160)" />
+            <ellipse cx="160" cy="160" rx="98" ry="178" fill="none" stroke="var(--accent)" stroke-opacity="0.2" stroke-width="1" transform="rotate(24 160 160)" />
+            <circle cx="74" cy="94" r="2.6" fill="var(--accent)" opacity="0.75" />
+            <circle cx="252" cy="70" r="2" fill="var(--accent-alt)" opacity="0.6" />
+            <circle cx="266" cy="210" r="2.2" fill="var(--accent)" opacity="0.55" />
+            <circle cx="60" cy="242" r="2" fill="var(--accent-alt)" opacity="0.55" />
+          </svg>
+          <div class="submit-hero__inner">
+            <p class="mono-label">SUBMIT / LISTING</p>
+            <h1 data-i18n="submit.hero">收录你的 DSH 插件 / 技能</h1>
+            <p class="submit-hero__intro" data-i18n="submit.intro">
+              本市场Auto-discovery同时打上 dsh-plugin 与 deepseek-harness 话题的公开仓库，无需人工审核。
+            </p>
+          </div>
+        </section>
+      </div>
+
+  <section class="submit-steps">
+    <div class="container">
+      <ol class="submit-steps__grid">
+        <li class="submit-step">
+          <h2 data-i18n="submit.step1Title">① 给仓库打话题标签</h2>
+          <p data-i18n="submit.step1Body">
+            Add both dsh-plugin and deepseek-harness to Settings → Topics of your repository.话题。
+          </p>
+          <code class="submit-step__code">dsh-plugin&nbsp;&nbsp;deepseek-harness</code>
+        </li>
+        <li class="submit-step">
+          <h2 data-i18n="submit.step2Title">② 等待自动同步</h2>
+          <p data-i18n="submit.step2Body">
+            市场每 30 /10钟自动同步一次 GitHub 数据，收录后无需任何人工操作。
+          </p>
+        </li>
+        <li class="submit-step">
+          <h2 data-i18n="submit.step3Title">③ 检查收录状态</h2>
+          <p data-i18n="submit.step3Body">
+            Search your repository name on the homepage to confirm indexing.
+          </p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <div class="container submit-trend">
+    <TrendChart />
+  </div>
+
+
+  <section class="submit-manual">
+    <div class="container submit-manual__inner">
+      <h2 data-i18n="submit.manual">手动申请</h2>
+      <p data-i18n="submit.manualBody">
+        If your repository cannot use topics (private or non-GitHub hosted), submit a request via GitHub Issue.
+      </p>
+      <a class="submit-manual__action" href={SUBMIT_ISSUE_URL} target="_blank" rel="noreferrer">
+        <Github size={16} stroke-width={1.6} />
+        <span data-i18n="submit.issue">提交Submit</span>
+        <ArrowUpRight size={15} stroke-width={1.6} />
+      </a>
+    </div>
+  </section>
+
+  <section class="submit-faq">
+    <div class="container">
+      <h2 class="submit-faq__title" data-i18n="submit.faqTitle">常见问题</h2>
+      <details class="submit-faq__item">
+        <summary data-i18n="submit.faq1Q">多久能被收录？</summary>
+        <p data-i18n="submit.faq1A">通常在打上话题后的 30 /10钟内（下一轮同步时）被收录。</p>
+      </details>
+      <details class="submit-faq__item">
+        <summary data-i18n="submit.faq2Q">为什么我的仓库没有收录？</summary>
+        <p data-i18n="submit.faq2A">
+          Must include both dsh-plugin and deepseek-harness topics; archived repos, forks, and host applications are用的项目会被排除。
+        </p>
+      </details>
+      <details class="submit-faq__item">
+        <summary data-i18n="submit.faq3Q">收录后有什么好处？</summary>
+        <p data-i18n="submit.faq3A">
+          你的项目会出现在市场目录中，获得/10类、标签、搜索与验证状态展示，并可通过安装命令One-click install。
+        </p>
+      </details>
+      <p class="submit-faq__note" data-i18n="submit.note">收录不代表审核、兼容性或Security性背书。</p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .submit-hero {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-height: 34vh;
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      background: var(--canvas);
+      border: 1px solid var(--outline);
+      box-shadow: var(--shadow-card);
+      padding: 0 40px;
+    }
+
+    .submit-hero {
+        position: relative;
+        display: flex;
+        align-items: center;
+        min-height: 34vh;
+        overflow: hidden;
+        border-radius: var(--radius-lg);
+        background: var(--canvas);
+        border: 1px solid var(--outline);
+        box-shadow: var(--shadow-card);
+        padding: 0 40px;
+      }
+
+      .submit-hero__glow {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+        filter: blur(60px);
+      }
+  .submit-hero__glow--1 {
+    width: 420px;
+    height: 420px;
+    top: -120px;
+    right: -80px;
+    background: var(--glow);
+  }
+  .submit-hero__glow--2 {
+    width: 320px;
+    height: 320px;
+    bottom: -120px;
+    left: -60px;
+    background: rgba(109, 40, 217, 0.10);
+  }
+  .submit-hero__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(var(--outline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--outline) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.18;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+  }
+
+  .submit-hero__orb {
+    position: absolute;
+    right: -80px;
+    top: -80px;
+    width: 320px;
+    height: 320px;
+    pointer-events: none;
+  }
+
+  .submit-hero__inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .submit-hero h1 {
+      margin: 0;
+      font-size: clamp(32px, 5vw, 52px);
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+    }
+
+  .submit-hero__intro {
+    margin: 0;
+    max-width: 560px;
+    color: var(--mute);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .submit-steps {
+      padding-block: 28px 48px;
+    }
+
+  .submit-steps__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .submit-step {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 22px;
+    border: 1px solid var(--outline);
+    border-radius: 14px;
+    background: var(--canvas-soft);
+  }
+
+  .submit-step h2 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  .submit-step p {
+    margin: 0;
+    color: var(--mute);
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+
+  .submit-step__code {
+    display: inline-block;
+    width: fit-content;
+    margin-top: auto;
+    padding: 6px 10px;
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    background: var(--canvas);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink);
+  }
+
+  .submit-manual {
+    padding-block: 0 48px;
+  }
+
+  .submit-manual__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 26px;
+    border: 1px solid var(--outline);
+    border-radius: 14px;
+  }
+
+  .submit-manual h2 {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  .submit-manual p {
+    margin: 0;
+    color: var(--mute);
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+
+  .submit-manual__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    margin-top: 6px;
+    padding: 10px 18px;
+    border-radius: 9999px;
+    background: var(--ink);
+    color: var(--canvas);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 160ms ease;
+  }
+
+  .submit-manual__action:hover {
+    opacity: 0.85;
+  }
+
+  .submit-faq {
+    padding-block: 0 64px;
+  }
+
+  .submit-faq__title {
+    margin: 0 0 18px;
+    font-size: 18px;
+  }
+
+  .submit-faq__item {
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .submit-faq__item summary {
+    padding: 16px 4px;
+    cursor: pointer;
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+
+  .submit-faq__item p {
+    margin: 0;
+    padding: 0 4px 18px;
+    color: var(--mute);
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+
+  .submit-faq__note {
+    margin: 24px 0 0;
+    color: var(--mute);
+    font-size: 12.5px;
+  }
+</style>

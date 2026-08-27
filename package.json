@@ -1,0 +1,44 @@
+{
+  "name": "duink.com",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check && astro build",
+    "build:plugin": "node packages/dsh-store/build.mjs",
+    "pack:plugin": "npm run build:plugin && npm pack ./packages/dsh-store",
+    "preview": "astro preview",
+    "sync": "tsx scripts/sync-github.ts",
+    "validate:shadow": "tsx scripts/validation/shadow-cli.ts",
+    "validate:baseline": "tsx scripts/validation/baseline-cli.ts",
+    "validate:candidates": "tsx scripts/validation/candidate-cli.ts",
+    "validate:classify": "tsx scripts/validation/source-classification-runner.ts",
+    "validate:archive": "tsx scripts/validation/validation-archive-cli.ts",
+    "validate:select": "tsx scripts/validation/validation-select-cli.ts",
+    "validate:state": "tsx scripts/validation/validation-state-cli.ts",
+    "validate:artifact": "tsx scripts/validation/verify-validation-artifact.ts",
+    "validate:promote": "tsx scripts/validation/promotion-cli.ts",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@astrojs/check": "latest",
+    "@astrojs/sitemap": "^3.7.3",
+    "@lucide/astro": "^1.31.0",
+    "astro": "latest",
+    "cheerio": "^1.2.0",
+    "simple-icons-astro": "^16.1.0",
+    "typescript": "latest",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-native-command": "^0.1.0-rc.6",
+    "@types/node": "^26.2.0",
+    "@vitest/coverage-v8": "latest",
+    "esbuild": "^0.28.2",
+    "tsx": "latest",
+    "vitest": "latest"
+  }
+}

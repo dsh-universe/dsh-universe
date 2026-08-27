@@ -1,0 +1,372 @@
+---
+// news.astro — AI 情报页（日报归档墙：轻 hero + TypeGate + tab + 日报卡）
+import BaseLayout from '../layouts/BaseLayout.astro'
+import TypeGate from '../components/TypeGate.astro'
+import newsData from '../data/news-data.json'
+
+const { days } = newsData
+const dayCount = days.length
+const totalItems = days.reduce((n, d) => n + d.sections.reduce((m, s) => m + s.items.length, 0), 0)
+---
+
+<BaseLayout pageTitleKey="news.pageTitle">
+  <!-- 轻 hero（~40vh，不照抄 about 全屏） -->
+  <section class="news-hero">
+    <div class="news-hero__glow" aria-hidden="true"></div>
+    <svg class="news-hero__orbit" viewBox="0 0 260 260" aria-hidden="true">
+      <defs>
+        <linearGradient id="news-ring" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0" />
+          <stop offset="35%" stop-color="var(--accent)" stop-opacity="0.75" />
+          <stop offset="65%" stop-color="var(--accent)" stop-opacity="0.75" />
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0" />
+        </linearGradient>
+        <radialGradient id="news-core" cx="38%" cy="32%" r="75%">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.8" />
+          <stop offset="100%" stop-color="var(--canvas-card)" />
+        </radialGradient>
+      </defs>
+      <ellipse cx="130" cy="132" rx="106" ry="30" fill="none" stroke="url(#news-ring)" stroke-width="2" transform="rotate(-14 130 132)" />
+      <circle cx="130" cy="132" r="46" fill="url(#news-core)" />
+      <circle cx="130" cy="132" r="46" fill="none" stroke="var(--accent)" stroke-opacity="0.25" stroke-width="1.5" />
+      <path d="M 46 150 A 106 30 0 0 0 214 150" fill="none" stroke="url(#news-ring)" stroke-width="2" transform="rotate(-14 130 132)" opacity="0.85" />
+      <circle cx="212" cy="96" r="4.5" fill="var(--accent)" opacity="0.9" />
+      <circle cx="212" cy="96" r="8.5" fill="var(--accent)" opacity="0.2" />
+      <circle cx="52" cy="178" r="2.6" fill="var(--accent)" opacity="0.6" />
+      <circle cx="230" cy="180" r="2" fill="var(--accent)" opacity="0.5" />
+    </svg>
+    <div class="container news-hero__inner">
+      <p class="mono-label">AI INTELLIGENCE / DAILY BRIEF</p>
+      <h1 class="news-hero__title" data-i18n="news.title">AI 情报</h1>
+      <p class="news-hero__lead" data-i18n="news.lead">每日海外 AI Tech与Finance动态，为开发者而生。</p>
+      <p class="news-hero__meta">
+        <span class="news-hero__meta-item">{dayCount} days</span>
+        <span class="news-hero__meta-item">{totalItems} headlines</span>
+        <span class="news-hero__meta-item news-hero__meta-item--live">Daily</span>
+      </p>
+    </div>
+  </section>
+
+  <TypeGate active="news" />
+
+  <!-- tab + 日报列表 -->
+  <section class="news-body">
+    <div class="container">
+      <div class="news-tabs" role="tablist" aria-label="情报/10类">
+        <button class="news-tab is-active" data-news-tab="all" data-i18n="news.tabAll">All</button>
+        <button class="news-tab" data-news-tab="tech" data-i18n="news.tabTech">Tech</button>
+        <button class="news-tab" data-news-tab="finance" data-i18n="news.tabFinance">Finance</button>
+        <a class="news-browse" href="/#catalog-tools" data-i18n="news.browsePlugins">逛插件市场 →</a>
+      </div>
+
+      <div class="news-list">
+        {days.map((day, idx) => {
+          const dayCount = day.sections.reduce((m, s) => m + s.items.length, 0)
+          const cats = day.sections.map((s) => s.cat)
+          const dayCat = cats.includes('tech') && cats.includes('finance') ? 'tech-finance' : (cats[0] || 'tech')
+          return (
+            <details class="news-card" data-day-cat={dayCat} open={idx < 2}>
+              <summary class="news-card__head">
+                <span class="news-card__date">{day.display}</span>
+                <span class="news-card__count">{dayCount} items</span>
+                <span class="news-card__toggle" aria-hidden="true">▾</span>
+              </summary>
+              {day.sections.map((s) => (
+                <div class="news-card__section" data-section-cat={s.cat}>
+                  <h3 class="news-card__cat">{s.cat === 'tech' ? 'Tech' : 'Finance'}</h3>
+                  {s.items.map((it) => (
+                    <details class="news-item">
+                      <summary class="news-item__head">
+                        <span class="news-item__title">{it.title}</span>
+                        <span class="news-item__score">{it.score != null ? it.score.toFixed(1) : ''}</span>
+                        <span class="news-item__source">{it.source}</span>
+                        <span class="news-item__arrow" aria-hidden="true">+</span>
+                      </summary>
+                      <p class="news-item__summary">{it.summary}</p>
+                    </details>
+                  ))}
+                </div>
+              ))}
+            </details>
+          )
+        })}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // tab 过滤：section 级显隐 + 卡片级收尾（混合卡在单分类下只显示对应 section）
+  const tabs = document.querySelectorAll<HTMLElement>('[data-news-tab]')
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const cat = tab.dataset.newsTab || 'all'
+      tabs.forEach((t) => t.classList.toggle('is-active', t === tab))
+      document.querySelectorAll<HTMLElement>('[data-section-cat]').forEach((sec) => {
+        const secCat = sec.dataset.sectionCat || ''
+        sec.style.display = cat === 'all' || secCat === cat ? '' : 'none'
+      })
+      document.querySelectorAll<HTMLElement>('[data-day-cat]').forEach((card) => {
+        const anyVisible = [...card.querySelectorAll<HTMLElement>('[data-section-cat]')].some((s) => s.style.display !== 'none')
+        card.style.display = anyVisible ? '' : 'none'
+      })
+    })
+  })
+</script>
+
+<style>
+  /* 轻 hero */
+  .news-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 38vh;
+    overflow: hidden;
+  }
+  .news-hero__glow {
+    position: absolute;
+    top: -30%;
+    right: -6%;
+    width: 520px;
+    height: 520px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.18;
+    filter: blur(90px);
+    pointer-events: none;
+  }
+  .news-hero__orbit {
+    position: absolute;
+    right: 7%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: min(250px, 34vw);
+    height: auto;
+    pointer-events: none;
+  }
+  .news-hero__inner {
+    position: relative;
+    padding-block: 56px 48px;
+  }
+  .news-hero__title {
+    margin: 14px 0 0;
+    font-size: clamp(48px, 7vw, 76px);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  .news-hero__lead {
+    margin: 16px 0 0;
+    max-width: 560px;
+    color: var(--body);
+    font-size: 15.5px;
+    line-height: 1.8;
+  }
+  .news-hero__meta {
+    display: flex;
+    gap: 18px;
+    margin: 26px 0 0;
+    font-size: 13px;
+    color: var(--mute);
+  }
+  .news-hero__meta-item--live {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* tab 行 */
+  .news-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px;
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    background: var(--canvas-soft);
+    flex-wrap: wrap;
+  }
+  .news-tab {
+    padding: 8px 20px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--body);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+  .news-tab:hover {
+    color: var(--accent);
+  }
+  .news-tab.is-active {
+    background: var(--accent);
+    color: var(--canvas);
+  }
+  .news-browse {
+    margin-left: auto;
+    padding: 8px 16px;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .news-browse:hover {
+    text-decoration: underline;
+  }
+
+  /* 日报卡列表 */
+  .news-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 26px;
+    padding-bottom: 72px;
+  }
+  .news-card {
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    background: var(--canvas-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .news-card__head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--outline);
+    background: var(--canvas-soft);
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 160ms ease;
+  }
+  .news-card__head::-webkit-details-marker {
+    display: none;
+  }
+  .news-card__head:hover {
+    background: var(--canvas-card);
+  }
+  .news-card__toggle {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--mute);
+    transition: transform 160ms ease, color 160ms ease;
+  }
+  .news-card[open] .news-card__toggle {
+    color: var(--accent);
+    transform: rotate(180deg);
+  }
+  .news-card__date {
+    font-family: var(--font-mono);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--accent);
+  }
+  .news-card__count {
+    font-size: 12.5px;
+    color: var(--mute);
+  }
+
+  .news-card__section {
+    padding: 14px 22px 6px;
+  }
+  .news-card__section + .news-card__section {
+    border-top: 1px dashed var(--outline);
+  }
+  .news-card__cat {
+    margin: 0 0 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--mute);
+    text-transform: uppercase;
+  }
+
+  /* 每条要闻（折叠） */
+  .news-item {
+    border-bottom: 1px solid var(--outline);
+  }
+  .news-item:last-child {
+    border-bottom: 0;
+  }
+  .news-item__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+  }
+  .news-item__head::-webkit-details-marker {
+    display: none;
+  }
+  .news-item__head:hover .news-item__title {
+    color: var(--accent);
+  }
+  .news-item__title {
+    flex: 1;
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.5;
+    transition: color 160ms ease;
+  }
+  .news-item__score {
+    flex: 0 0 auto;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .news-item__source {
+    flex: 0 0 auto;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--mute);
+  }
+  .news-item__arrow {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-size: 15px;
+    color: var(--mute);
+    transition: transform 160ms ease, color 160ms ease;
+  }
+  .news-item[open] .news-item__arrow {
+    color: var(--accent);
+    transform: rotate(45deg);
+  }
+  .news-item__summary {
+    margin: 0;
+    padding: 2px 0 16px;
+    color: var(--body);
+    font-size: 13.5px;
+    line-height: 1.85;
+  }
+
+  @media (max-width: 760px) {
+    .news-hero {
+      min-height: auto;
+    }
+    .news-hero__orbit {
+      display: none;
+    }
+    .news-card__head,
+    .news-card__section {
+      padding-inline: 16px;
+    }
+    .news-item__source {
+      display: none;
+    }
+  }
+</style>

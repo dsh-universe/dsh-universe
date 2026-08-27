@@ -1,0 +1,340 @@
+---
+// skills.astro — DSH UNIVERSE 技能专区（只展示 projectType=skill）
+import { Search } from '@lucide/astro'
+import ProjectCard from '../components/ProjectCard.astro'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import TypeGate from '../components/TypeGate.astro'
+import { sortCatalogEntries, type Catalog } from '../lib/catalog'
+import { catalogData } from '../lib/catalog-data'
+
+const catalog = catalogData as Catalog
+const skills = catalog.repositories.filter((r) => r.projectType === 'skill')
+const initial = sortCatalogEntries(skills, 'recommended', catalog.generatedAt)
+---
+
+<BaseLayout pageTitleKey="skills.pageTitle">
+  <div class="container">
+    <section class="skills-hero">
+      <div class="skills-hero__glow skills-hero__glow--1" aria-hidden="true"></div>
+      <div class="skills-hero__glow skills-hero__glow--2" aria-hidden="true"></div>
+      <div class="skills-hero__grid" aria-hidden="true"></div>
+      <svg class="skills-hero__orb" viewBox="0 0 320 320" aria-hidden="true">
+        <defs>
+          <radialGradient id="sh-orb" cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.5" />
+            <stop offset="60%" stop-color="var(--accent)" stop-opacity="0.14" />
+            <stop offset="100%" stop-color="transparent" />
+          </radialGradient>
+        </defs>
+        <circle cx="160" cy="160" r="140" fill="url(#sh-orb)" />
+        <ellipse cx="160" cy="160" rx="160" ry="60" fill="none" stroke="var(--accent)" stroke-opacity="0.35" stroke-width="1.2" transform="rotate(-16 160 160)" />
+        <ellipse cx="160" cy="160" rx="98" ry="178" fill="none" stroke="var(--accent)" stroke-opacity="0.2" stroke-width="1" transform="rotate(24 160 160)" />
+        <circle cx="74" cy="94" r="2.6" fill="var(--accent)" opacity="0.75" />
+        <circle cx="252" cy="70" r="2" fill="var(--accent-alt)" opacity="0.6" />
+        <circle cx="266" cy="210" r="2.2" fill="var(--accent)" opacity="0.55" />
+        <circle cx="60" cy="242" r="2" fill="var(--accent-alt)" opacity="0.55" />
+      </svg>
+      <div class="skills-hero__inner">
+        <p class="mono-label">SKILLS / DSH UNIVERSE</p>
+        <h1 data-i18n="skills.title">Skills</h1>
+        <p class="skills-hero__lead" data-i18n="skills.lead">
+          DeepSeek Harness 生态的技能（Skill）——让 AI 具备特定能力的可复用技能包，收录、/10类并持续验证。
+        </p>
+        <p class="skills-hero__note">
+          <span data-i18n="skills.note">技能（Skill）是插件的一种——以提示词与知识为主的能力包，与代码型插件互补。</span>
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <TypeGate active="skills" />
+
+
+  <section class="skills-compare">
+    <div class="container">
+      <div class="skills-compare__grid">
+        <div class="skills-compare__card">
+          <h3 data-i18n="skills.compPlugin">插件 Plugin</h3>
+          <p data-i18n="skills.compPluginDesc">以代码为主的能力扩展——工具调用、模型接入、协议桥接，写进 Harness 即成为可执行能力。</p>
+        </div>
+        <div class="skills-compare__card skills-compare__card--accent">
+          <h3 data-i18n="skills.compSkill">技能 Skill</h3>
+          <p data-i18n="skills.compSkillDesc">以提示词与知识为主的能力包——工作流、领域知识、操作规范，让 AI 在特定场景直接可用。</p>
+        </div>
+        <div class="skills-compare__card">
+          <h3 data-i18n="skills.compFlow">两者关系</h3>
+          <p data-i18n="skills.compFlowDesc">官方定位「万物皆插件」：技能是插件的一种，与代码型插件互补，共同构成 Harness 的能力宇宙。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="skills-tools">
+    <div class="container">
+      <div class="skills-search-row">
+        <label class="search-field">
+          <span class="visually-hidden" data-i18n="skills.search">搜索技能</span>
+          <Search size={19} stroke-width={1.6} />
+          <input id="skills-search" type="search" placeholder="搜索技能…" data-i18n-placeholder="skills.searchPlaceholder" />
+        </label>
+        <label class="select-field">
+          <span class="visually-hidden" data-i18n="skills.sort">Sort</span>
+          <select id="skills-sort" aria-label="Sort">
+            <option value="recommended" data-i18n="sort.recommended">RecommendedSort</option>
+            <option value="stars" data-i18n="sort.stars">Stars 最多</option>
+            <option value="updated" data-i18n="sort.updated">最近更新</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="skills-grid" id="skills-grid">
+        {initial.map((repository) => <ProjectCard repository={repository} />)}
+      </div>
+
+      <p class="skills-empty" id="skills-empty" hidden data-i18n="skills.empty">
+        No matching skills found. Try a different keyword.
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  const searchInput = document.getElementById('skills-search') as HTMLInputElement | null
+  const sortSelect = document.getElementById('skills-sort') as HTMLSelectElement | null
+  const grid = document.getElementById('skills-grid')
+  const empty = document.getElementById('skills-empty')
+  const cards: HTMLElement[] = grid ? Array.from(grid.querySelectorAll<HTMLElement>('[data-project-card]')) : []
+
+  // 搜索过滤
+  const applyFilter = () => {
+    if (!empty) return
+    const q = (searchInput?.value ?? '').trim().toLocaleLowerCase('zh-CN')
+    let visible = 0
+    cards.forEach((card) => {
+      const searchable = (card.dataset.search ?? '')
+      const match = !q || searchable.includes(q)
+      card.hidden = !match
+      if (match) visible += 1
+    })
+    empty.hidden = visible !== 0
+  }
+
+  // 排序
+  const applySort = () => {
+    if (!grid) return
+    const mode = sortSelect?.value ?? 'recommended'
+    const sorted = cards.sort((a, b) => {
+      const sa = Number(a.dataset.stars || 0)
+      const sb = Number(b.dataset.stars || 0)
+      const ua = a.dataset.updated || ''
+      const ub = b.dataset.updated || ''
+      if (mode === 'stars') return sb - sa
+      if (mode === 'updated') return ub.localeCompare(ua)
+      // recommended：star 优先，次按更新
+      return sb - sa || ub.localeCompare(ua)
+    })
+    sorted.forEach((card) => grid.appendChild(card))
+    applyFilter()
+  }
+
+  searchInput?.addEventListener('input', applyFilter)
+  sortSelect?.addEventListener('change', applySort)
+</script>
+
+<style>
+  .skills-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 34vh;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--canvas);
+    border: 1px solid var(--outline);
+    box-shadow: var(--shadow-card);
+    padding: 0 40px;
+  }
+
+  .skills-hero__glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(60px);
+  }
+  .skills-hero__glow--1 {
+    width: 420px;
+    height: 420px;
+    top: -120px;
+    right: -80px;
+    background: var(--glow);
+  }
+  .skills-hero__glow--2 {
+    width: 320px;
+    height: 320px;
+    bottom: -120px;
+    left: -60px;
+    background: rgba(109, 40, 217, 0.10);
+  }
+  .skills-hero__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(var(--outline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--outline) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.18;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+  }
+
+  .skills-hero__orb {
+    position: absolute;
+    right: -80px;
+    top: -80px;
+    width: 320px;
+    height: 320px;
+    pointer-events: none;
+  }
+
+  .skills-hero__inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-block: 52px 44px;
+  }
+
+  .skills-hero h1 {
+    margin: 0;
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+  }
+
+  .skills-hero__note {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: var(--mute);
+    line-height: 1.7;
+    max-width: 640px;
+  }
+
+  .skills-hero__lead {
+    margin: 0;
+    max-width: 600px;
+    color: var(--body);
+    font-size: 15px;
+    line-height: 1.8;
+  }
+
+  .skills-hero__count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    margin-top: 6px;
+    padding: 6px 14px;
+    border: 1px solid var(--outline);
+    border-radius: 9999px;
+    color: var(--body);
+    font-size: 13px;
+  }
+
+  .skills-hero__count-num {
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 15px;
+  }
+
+  .skills-compare {
+    padding-block: 8px 28px;
+  }
+  .skills-compare__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .skills-compare__card {
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    background: var(--canvas-soft);
+    padding: 22px 24px;
+  }
+  .skills-compare__card--accent {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .skills-compare__card h3 {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--ink);
+    margin: 0 0 10px;
+  }
+  .skills-compare__card p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--body);
+    margin: 0;
+  }
+  .skills-tools {
+    padding-block: 28px 64px;
+  }
+
+  .skills-search-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .search-field {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    background: var(--canvas-soft);
+    color: var(--mute);
+  }
+
+  .search-field input {
+    width: 100%;
+    padding: 12px 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font-size: 14.5px;
+  }
+
+  .select-field select {
+    height: 100%;
+    padding: 12px 38px 12px 16px;
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    background: var(--canvas-soft);
+    color: var(--ink);
+    font-size: 14px;
+  }
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+
+  .skills-empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--mute);
+    border: 1px dashed var(--outline);
+    border-radius: 14px;
+  }
+
+  @media (max-width: 640px) {
+    .skills-search-row {
+      flex-direction: column;
+    }
+  }
+</style>

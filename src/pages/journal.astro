@@ -1,0 +1,381 @@
+---
+// journal.astro — 宇宙手记页（公众号矩阵站内书架：栏目 tab + 文章卡片流，刊物模式）
+import BaseLayout from '../layouts/BaseLayout.astro'
+import TypeGate from '../components/TypeGate.astro'
+import newsData from '../data/news-data.json'
+
+const { days } = newsData
+const totalItems = days.reduce((n, d) => n + d.sections.reduce((m, s) => m + s.items.length, 0), 0)
+const COLUMNS = ['tech', 'finance', 'security', 'books', 'calendar']
+---
+
+<BaseLayout pageTitleKey="journal.pageTitle">
+  <!-- hero（刊物风格，参考主页 hero 装饰体系） -->
+  <div class="container">
+    <section class="journal-hero">
+      <div class="journal-hero__glow journal-hero__glow--1" aria-hidden="true"></div>
+      <div class="journal-hero__glow journal-hero__glow--2" aria-hidden="true"></div>
+      <div class="journal-hero__grid" aria-hidden="true"></div>
+      <svg class="journal-hero__orb" viewBox="0 0 320 320" aria-hidden="true">
+        <defs>
+          <radialGradient id="jh-orb" cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.5" />
+            <stop offset="60%" stop-color="var(--accent)" stop-opacity="0.14" />
+            <stop offset="100%" stop-color="transparent" />
+          </radialGradient>
+        </defs>
+        <circle cx="160" cy="160" r="140" fill="url(#jh-orb)" />
+        <ellipse cx="160" cy="160" rx="160" ry="60" fill="none" stroke="var(--accent)" stroke-opacity="0.35" stroke-width="1.2" transform="rotate(-16 160 160)" />
+        <ellipse cx="160" cy="160" rx="98" ry="178" fill="none" stroke="var(--accent)" stroke-opacity="0.2" stroke-width="1" transform="rotate(24 160 160)" />
+        <circle cx="74" cy="94" r="2.6" fill="var(--accent)" opacity="0.75" />
+        <circle cx="252" cy="70" r="2" fill="var(--accent-alt)" opacity="0.6" />
+        <circle cx="266" cy="210" r="2.2" fill="var(--accent)" opacity="0.55" />
+        <circle cx="60" cy="242" r="2" fill="var(--accent-alt)" opacity="0.55" />
+      </svg>
+      <div class="journal-hero__inner">
+        <p class="mono-label" data-i18n="journal.mono">UNIVERSE JOURNAL / Journal</p>
+        <h1 class="journal-hero__title" data-i18n="journal.title">Journal</h1>
+        <p class="journal-hero__lead" data-i18n="journal.lead">公众号矩阵的站内书架——Tech、Finance、Security、Books、Calendar，五items专栏归档于此。</p>
+        <p class="journal-hero__meta">
+          <span class="journal-hero__meta-item">{totalItems} <span data-i18n="journal.statArticles">items归档</span></span>
+          <span class="journal-hero__meta-item">{COLUMNS.length} <span data-i18n="journal.statColumns">items专栏</span></span>
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <TypeGate />
+
+  <!-- tab + 文章流 -->
+  <section class="journal-body">
+    <div class="container">
+      <div class="journal-tabs" role="tablist" aria-label="专栏/10类">
+        <button class="journal-tab is-active" data-journal-tab="all" data-i18n="journal.tabAll">All</button>
+        <button class="journal-tab" data-journal-tab="tech" data-i18n="journal.tabTech">Tech</button>
+        <button class="journal-tab" data-journal-tab="finance" data-i18n="journal.tabFinance">Finance</button>
+        <button class="journal-tab" data-journal-tab="security" data-i18n="journal.tabSecurity">Security</button>
+        <button class="journal-tab" data-journal-tab="books" data-i18n="journal.tabBooks">Books</button>
+        <button class="journal-tab" data-journal-tab="calendar" data-i18n="journal.tabCalendar">Calendar</button>
+        <a class="journal-browse" href="/#catalog-tools" data-i18n="journal.browsePlugins">逛插件市场 →</a>
+      </div>
+
+      <div class="journal-list">
+        {days.map((day, idx) => {
+          const dayItemCount = day.sections.reduce((m, s) => m + s.items.length, 0)
+          const cats = day.sections.map((s) => s.cat)
+          const dayCat = cats.includes('tech') && cats.includes('finance') ? 'tech-finance' : (cats[0] || 'tech')
+          return (
+            <details class="journal-card" data-day-cat={dayCat} open={idx < 2}>
+              <summary class="journal-card__head">
+                <span class="journal-card__date">{day.display}</span>
+                <span class="journal-card__count">{dayItemCount} <span data-i18n="journal.items">items</span></span>
+                <span class="journal-card__toggle" aria-hidden="true">▾</span>
+              </summary>
+              {day.sections.map((s) => (
+                <div class="journal-card__section" data-section-cat={s.cat}>
+                  <h3 class="journal-card__cat">{s.cat === 'tech' ? 'Tech' : 'Finance'}</h3>
+                  {s.items.map((it) => (
+                    <details class="journal-item">
+                      <summary class="journal-item__head">
+                        <span class="journal-item__title">{it.title}</span>
+                        <span class="journal-item__score">{it.score != null ? it.score.toFixed(1) : ''}</span>
+                        <span class="journal-item__source">{it.source}</span>
+                        <span class="journal-item__arrow" aria-hidden="true">+</span>
+                      </summary>
+                      <p class="journal-item__summary">{it.summary}</p>
+                    </details>
+                  ))}
+                </div>
+              ))}
+            </details>
+          )
+        })}
+
+        <!-- 筹备中专栏（安全/书籍/日历）：tab 切到它们时只显示这些卡 -->
+        {['security', 'books', 'calendar'].map((cat) => (
+          <div class="journal-empty" data-empty-cat={cat}>
+            <p data-i18n="journal.empty">该专栏筹备中，敬请期待。</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script>
+  // tab 过滤：日报流（tech/finance）与筹备中卡（security/books/calendar）联动显隐
+  const tabs = document.querySelectorAll<HTMLElement>('[data-journal-tab]')
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const cat = tab.dataset.journalTab || 'all'
+      tabs.forEach((t) => t.classList.toggle('is-active', t === tab))
+      // 日报卡：section 级显隐 + 卡片级收尾（与 /news 同逻辑）
+      document.querySelectorAll<HTMLElement>('.journal-card [data-section-cat]').forEach((sec) => {
+        const secCat = sec.dataset.sectionCat || ''
+        sec.style.display = cat === 'all' || secCat === cat ? '' : 'none'
+      })
+      document.querySelectorAll<HTMLElement>('.journal-card[data-day-cat]').forEach((card) => {
+        const anyVisible = [...card.querySelectorAll<HTMLElement>('[data-section-cat]')].some((s) => s.style.display !== 'none')
+        card.style.display = anyVisible ? '' : 'none'
+      })
+      // 筹备中空卡：只有切到对应专栏时才显示
+      document.querySelectorAll<HTMLElement>('.journal-empty').forEach((box) => {
+        box.style.display = cat !== 'all' && box.dataset.emptyCat === cat ? '' : 'none'
+      })
+    })
+  })
+</script>
+
+<style>
+  .journal-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 34vh;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--canvas);
+    border: 1px solid var(--outline);
+    box-shadow: var(--shadow-card);
+    padding: 0 40px;
+  }
+  .journal-hero__glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(60px);
+  }
+  .journal-hero__glow--1 {
+    width: 420px;
+    height: 420px;
+    top: -120px;
+    right: -80px;
+    background: var(--glow);
+  }
+  .journal-hero__glow--2 {
+    width: 320px;
+    height: 320px;
+    bottom: -120px;
+    left: -60px;
+    background: rgba(109, 40, 217, 0.10);
+  }
+  .journal-hero__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(var(--outline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--outline) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.18;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+  }
+  .journal-hero__orb {
+    position: absolute;
+    right: -80px;
+    top: -80px;
+    width: 320px;
+    height: 320px;
+    pointer-events: none;
+  }
+  .journal-hero__inner {
+    position: relative;
+    padding-block: 52px 44px;
+    max-width: 720px;
+  }
+  .journal-hero__title {
+    margin: 10px 0 14px;
+    font-size: clamp(36px, 5vw, 56px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .journal-hero__lead {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--muted);
+    max-width: 560px;
+  }
+  .journal-hero__meta {
+    display: flex;
+    gap: 18px;
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .journal-hero__meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .journal-body {
+    padding-block: 8px 72px;
+  }
+  .journal-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .journal-tab {
+    padding: 8px 16px;
+    border: 1px solid var(--outline);
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 140ms ease;
+  }
+  .journal-tab:hover {
+    border-color: var(--outline-strong);
+    color: var(--ink);
+  }
+  .journal-tab.is-active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .journal-browse {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-strong);
+    text-decoration: none;
+  }
+  .journal-browse:hover {
+    text-decoration: underline;
+  }
+
+  .journal-list {
+    display: grid;
+    gap: 14px;
+  }
+  .journal-card {
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    background: var(--canvas-soft);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .journal-card__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    cursor: pointer;
+    list-style: none;
+  }
+  .journal-card__head::-webkit-details-marker {
+    display: none;
+  }
+  .journal-card__date {
+    font-family: 'Geist Mono', 'Courier New', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .journal-card__count {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .journal-card__toggle {
+    margin-left: auto;
+    color: var(--muted);
+    transition: transform 160ms ease;
+  }
+  .journal-card[open] .journal-card__toggle {
+    transform: rotate(180deg);
+  }
+  .journal-card__section {
+    padding: 4px 20px 18px;
+  }
+  .journal-card__cat {
+    margin: 10px 0;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+  }
+  .journal-item {
+    border-top: 1px solid var(--hairline);
+  }
+  .journal-item__head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 12px 0;
+    cursor: pointer;
+    list-style: none;
+  }
+  .journal-item__head::-webkit-details-marker {
+    display: none;
+  }
+  .journal-item__title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+  .journal-item__score {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    border-radius: 6px;
+    padding: 1px 7px;
+  }
+  .journal-item__source {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--muted);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .journal-item__arrow {
+    margin-left: auto;
+    flex-shrink: 0;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .journal-item[open] .journal-item__arrow {
+    transform: rotate(45deg);
+  }
+  .journal-item__summary {
+    margin: 0 0 14px;
+    padding-left: 12px;
+    border-left: 2px solid var(--accent);
+    font-size: 13px;
+    line-height: 1.75;
+    color: var(--muted);
+  }
+  .journal-empty {
+    display: none;
+    border: 1px dashed var(--outline-strong);
+    border-radius: var(--radius);
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  @media (max-width: 767px) {
+    .journal-hero__inner {
+      padding-block: 40px 32px;
+    }
+    .journal-browse {
+      margin-left: 0;
+      width: 100%;
+    }
+    .journal-item__source {
+      display: none;
+    }
+  }
+</style>

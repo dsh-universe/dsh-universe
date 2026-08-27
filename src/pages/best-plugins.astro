@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { catalogData } from '../lib/catalog-data'
+import type { Catalog } from '../lib/catalog'
+
+const catalog = catalogData as Catalog
+const repos = catalog.repositories.filter((r: any) => !r.fork && !r.archived)
+const ranked = [...repos].sort((a: any, b: any) => {
+  const va = a.verified ? 1 : 0
+  const vb = b.verified ? 1 : 0
+  if (va !== vb) return vb - va
+  return (b.stars || 0) - (a.stars || 0)
+})
+const top = ranked.slice(0, 20)
+const catNames = [...new Set(repos.flatMap((r: any) => r.categories || []))].slice(0, 6)
+const byCat = Object.fromEntries(catNames.map((c) => [
+  c,
+  ranked.filter((r: any) => (r.categories || []).includes(c)).slice(0, 10),
+]))
+---
+
+<BaseLayout pageTitleKey="site.pageTitle.home" pageTitleParams={{}}>
+  <div class="container" style="padding:28px 20px 60px;max-width:1080px;margin:0 auto">
+    <p style="font-size:12px;letter-spacing:2px;color:#8892a6;text-transform:uppercase;margin-bottom:6px">Curated Rankings</p>
+    <h1 style="font-size:30px;margin:0 0 8px">Best DeepSeek Harness Plugins</h1>
+    <p style="color:#8892a6;margin:0 0 24px;font-size:14px;line-height:1.6">
+      The most useful, most starred, and community-verified plugins in the DeepSeek Harness (DSH) ecosystem — ranked from catalog data synced from GitHub.
+    </p>
+
+    <h2 style="font-size:20px;margin:28px 0 12px">🏆 Top 20 Overall</h2>
+    <ol style="list-style:none;padding:0;margin:0;display:grid;gap:10px">
+      {top.map((r: any, i: number) => (
+        <li style="background:#ffffff;border:1px solid rgba(0,0,0,.08);border-radius:10px;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
+          <span style="font-size:18px;font-weight:700;color:#4fc3f7;min-width:28px">{i + 1}</span>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <a href={`/plugins/${r.slug}/`} style="font-size:15px;font-weight:600;color:#1a2233;text-decoration:none">
+                {r.fullName || r.name}
+              </a>
+              {r.verified && <span style="font-size:11px;background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 8px">✓ Verified</span>}
+              <span style="font-size:12px;color:#8892a6">⭐ {r.stars?.toLocaleString() || 0}</span>
+              {(r.categories || []).slice(0, 2).map((c: string) => (
+                <span style="font-size:11px;background:#f1f3f5;color:#5a6a80;border-radius:10px;padding:1px 8px">{c}</span>
+              ))}
+            </div>
+            <p style="margin:6px 0 0;font-size:13px;color:#5a6a80;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">
+              {r.description || 'No description'}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ol>
+
+    {catNames.map((c: string) => (
+      <div style="margin-top:32px">
+        <h2 style="font-size:20px;margin:0 0 12px">Best {String(c)} Plugins</h2>
+        <div style="display:grid;gap:8px">
+          {(byCat[c] as any[]).slice(0, 8).map((r: any, i: number) => (
+            <a href={`/plugins/${r.slug}/`} style="display:flex;gap:10px;align-items:center;padding:10px 14px;background:#ffffff;border:1px solid rgba(0,0,0,.06);border-radius:8px;text-decoration:none;color:inherit">
+              <span style="font-size:13px;font-weight:600;color:#4fc3f7;min-width:20px">{i + 1}</span>
+              <span style="font-size:14px;font-weight:500;color:#1a2233">{r.fullName || r.name}</span>
+              <span style="margin-left:auto;font-size:12px;color:#8892a6">⭐ {r.stars?.toLocaleString() || 0}</span>
+              {r.verified && <span style="font-size:10px;background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:0 6px">✓</span>}
+            </a>
+          ))}
+        </div>
+      </div>
+    ))}
+
+    <p style="margin-top:32px;font-size:12px;color:#8892a6">
+      Rankings based on GitHub stars and verification status, updated automatically from the DSH plugin catalog. All plugins are open-source.
+    </p>
+  </div>
+</BaseLayout>
+
+<style>
+  :global(.container) { background: transparent; }
+  @media (prefers-color-scheme: dark) {
+    :global(li) { background: #1a2233 !important; border-color: rgba(255,255,255,.08) !important; }
+    :global(a[style*="color:inherit"]) { background: #1a2233 !important; }
+    :global(span[style*="color:#1a2233"]) { color: #e0e6f0 !important; }
+  }
+</style>

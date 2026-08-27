@@ -1,0 +1,660 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+// ===== PocketBase API 地址（本地测试） =====
+// TODO: 上线前改为生产地址，如 https://api.your-domain.com
+const PB_API = 'http://127.0.0.1:8090'
+const PB_TOKEN_KEY = 'dsh-pb-token'
+const PB_USER_KEY = 'dsh-pb-user'
+---
+
+<BaseLayout pageTitleKey="members.pageTitle">
+  <div class="container">
+    <section class="members-hero">
+      <div class="members-hero__glow members-hero__glow--1" aria-hidden="true"></div>
+      <div class="members-hero__glow members-hero__glow--2" aria-hidden="true"></div>
+      <div class="members-hero__grid" aria-hidden="true"></div>
+      <svg class="members-hero__orb" viewBox="0 0 320 320" aria-hidden="true">
+        <defs>
+          <radialGradient id="mh-orb" cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.5" />
+            <stop offset="60%" stop-color="var(--accent)" stop-opacity="0.14" />
+            <stop offset="100%" stop-color="transparent" />
+          </radialGradient>
+        </defs>
+        <circle cx="160" cy="160" r="140" fill="url(#mh-orb)" />
+        <ellipse cx="160" cy="160" rx="160" ry="60" fill="none" stroke="var(--accent)" stroke-opacity="0.35" stroke-width="1.2" transform="rotate(-16 160 160)" />
+        <ellipse cx="160" cy="160" rx="98" ry="178" fill="none" stroke="var(--accent)" stroke-opacity="0.2" stroke-width="1" transform="rotate(24 160 160)" />
+        <circle cx="74" cy="94" r="2.6" fill="var(--accent)" opacity="0.75" />
+        <circle cx="252" cy="70" r="2" fill="var(--accent-alt)" opacity="0.6" />
+        <circle cx="266" cy="210" r="2.2" fill="var(--accent)" opacity="0.55" />
+        <circle cx="60" cy="242" r="2" fill="var(--accent-alt)" opacity="0.55" />
+      </svg>
+      <div class="members-hero__inner">
+        <p class="mono-label">MEMBER CENTER</p>
+        <h1 data-i18n="members.pageTitle">Members</h1>
+        <p class="members-hero__lead">Join DSH UNIVERSE membership to unlock the gold badge, priority verification, and beta access — grow with the ecosystem.</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="members-body">
+    <div class="container members-grid">
+      <div class="members-side" aria-label="Membership benefits">
+        <svg class="members-side__orb" viewBox="0 0 200 200" aria-hidden="true">
+          <defs>
+            <radialGradient id="ms-orb" cx="35%" cy="30%" r="80%">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.55" />
+              <stop offset="60%" stop-color="var(--accent)" stop-opacity="0.15" />
+              <stop offset="100%" stop-color="transparent" />
+            </radialGradient>
+          </defs>
+          <circle cx="100" cy="100" r="88" fill="url(#ms-orb)" />
+          <ellipse cx="100" cy="100" rx="100" ry="38" fill="none" stroke="var(--accent)" stroke-opacity="0.4" stroke-width="1.2" transform="rotate(-16 100 100)" />
+          <ellipse cx="100" cy="100" rx="62" ry="112" fill="none" stroke="var(--accent)" stroke-opacity="0.22" stroke-width="1" transform="rotate(24 100 100)" />
+          <circle cx="46" cy="58" r="2.6" fill="var(--accent)" opacity="0.75" />
+          <circle cx="158" cy="44" r="2" fill="var(--accent-alt)" opacity="0.6" />
+          <circle cx="166" cy="132" r="2.2" fill="var(--accent)" opacity="0.55" />
+          <circle cx="38" cy="152" r="2" fill="var(--accent-alt)" opacity="0.55" />
+        </svg>
+        <p class="mono-label">MEMBERSHIP</p>
+        <h3 data-i18n="members.perksTitle">加入 DSH UNIVERSE 会员</h3>
+        <ul class="members-perks">
+          <li data-i18n="members.perk1">金色 VIP 徽章 · 个人主页专属标识</li>
+          <li data-i18n="members.perk2">插件收录优先验证通道</li>
+          <li data-i18n="members.perk3">生态新功能内测资格</li>
+          <li data-i18n="members.perk4">未来特权持续解锁</li>
+        </ul>
+      </div>
+      <!-- 未登录：登录/注册表单 -->
+      <div id="members-guest" class="members-card" hidden>
+        <div class="members-tabs" role="tablist">
+          <button id="tab-login" class="members-tab" type="button" role="tab" aria-selected="true" data-i18n="members.loginTitle">登录</button>
+          <button id="tab-register" class="members-tab" type="button" role="tab" aria-selected="false" data-i18n="members.registerTitle">注册</button>
+        </div>
+
+        <!-- 登录表单 -->
+        <form id="form-login" class="members-form" novalidate>
+          <label class="members-field">
+            <span data-i18n="members.email">邮箱</span>
+            <input type="email" name="identity" autocomplete="email" required />
+          </label>
+          <label class="members-field">
+            <span data-i18n="members.password">密码</span>
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <button class="members-submit" type="submit" data-i18n="members.submitLogin">登录</button>
+          <p class="members-switch">
+            <span data-i18n="members.notLoggedIn">未登录</span>
+            <a href="#" id="switch-to-register" data-i18n="members.switchToRegister">没有账号？去注册</a>
+          </p>
+        </form>
+
+        <!-- 注册表单 -->
+        <form id="form-register" class="members-form" hidden novalidate>
+          <label class="members-field">
+            <span data-i18n="members.email">邮箱</span>
+            <input type="email" name="email" autocomplete="email" required />
+          </label>
+          <label class="members-field">
+            <span data-i18n="members.nickname">昵称（选填）</span>
+            <input type="text" name="nickname" autocomplete="nickname" maxlength="64" />
+          </label>
+          <label class="members-field">
+            <span data-i18n="members.password">密码</span>
+            <input type="password" name="password" autocomplete="new-password" required minlength="8" />
+          </label>
+          <label class="members-field">
+            <span data-i18n="members.passwordConfirm">确认密码</span>
+            <input type="password" name="passwordConfirm" autocomplete="new-password" required minlength="8" />
+          </label>
+          <button class="members-submit" type="submit" data-i18n="members.submitRegister">注册</button>
+          <p class="members-switch">
+            <span data-i18n="members.notLoggedIn">未登录</span>
+            <a href="#" id="switch-to-login" data-i18n="members.switchToLogin">已有账号？去登录</a>
+          </p>
+        </form>
+
+        <p id="members-error" class="members-error" role="alert" hidden></p>
+        <p id="members-info" class="members-info" role="status" hidden></p>
+      </div>
+
+      <!-- 已登录：会员信息 -->
+      <div id="members-profile" class="members-card members-profile" hidden>
+        <div class="members-profile__head">
+          <div class="members-avatar" id="profile-avatar" aria-hidden="true">D</div>
+          <div class="members-profile__id">
+            <p class="members-profile__name" id="profile-name">—</p>
+            <p class="members-profile__email" id="profile-email">—</p>
+          </div>
+          <span class="members-badge" id="profile-level" data-level="free">Free</span>
+        </div>
+        <dl class="members-meta">
+          <div>
+            <dt data-i18n="members.level">会员等级</dt>
+            <dd id="profile-level-text">—</dd>
+          </div>
+          <div>
+            <dt>UID</dt>
+            <dd id="profile-uid" class="members-meta__mono">—</dd>
+          </div>
+          <div>
+            <dt>Email verification</dt>
+            <dd id="profile-verified">—</dd>
+          </div>
+        </dl>
+        <button id="btn-logout" class="members-submit members-submit--ghost" type="button" data-i18n="members.logout">退出登录</button>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script is:inline define:vars={{ PB_API, PB_TOKEN_KEY, PB_USER_KEY }}>
+  (() => {
+    const $ = (id) => document.getElementById(id)
+    const t = (key) => window.dshI18n?.t(key) ?? key
+    const levelLabels = {
+      free: () => t('members.levelFree'),
+      vip: () => t('members.levelVip'),
+      partner: () => t('members.levelPartner'),
+    }
+
+    const token = localStorage.getItem(PB_TOKEN_KEY)
+    const savedUser = (() => { try { return JSON.parse(localStorage.getItem(PB_USER_KEY) || 'null') } catch { return null } })()
+
+    const guest = $('members-guest')
+    const profile = $('members-profile')
+    const errorBox = $('members-error')
+    const infoBox = $('members-info')
+
+    const showError = (msg) => {
+      if (!msg) { errorBox.hidden = true; return }
+      errorBox.textContent = msg
+      errorBox.hidden = false
+      infoBox.hidden = true
+    }
+    const showInfo = (msg) => {
+      if (!msg) { infoBox.hidden = true; return }
+      infoBox.textContent = msg
+      infoBox.hidden = false
+      errorBox.hidden = true
+    }
+
+    const renderProfile = (user) => {
+      guest.hidden = true
+      profile.hidden = false
+      const level = user.member_level || 'free'
+      const name = user.nickname || user.email?.split('@')[0] || 'D'
+      $('profile-name').textContent = name
+      $('profile-email').textContent = user.email || ''
+      $('profile-avatar').textContent = (name[0] || 'D').toUpperCase()
+      $('profile-uid').textContent = user.id || ''
+      $('profile-verified').textContent = user.verified ? '✓' : '—'
+      const badge = $('profile-level')
+      badge.dataset.level = level
+      badge.textContent = levelLabels[level] ? levelLabels[level]() : level
+      $('profile-level-text').textContent = levelLabels[level] ? levelLabels[level]() : level
+    }
+
+    const renderGuest = () => {
+      guest.hidden = false
+      profile.hidden = true
+      $('form-login').hidden = false
+      $('form-register').hidden = true
+      $('tab-login').setAttribute('aria-selected', 'true')
+      $('tab-register').setAttribute('aria-selected', 'false')
+    }
+
+    if (token && savedUser) {
+      renderProfile(savedUser)
+    } else {
+      renderGuest()
+    }
+
+    // 表单切换
+    const setTab = (which) => {
+      const login = which === 'login'
+      $('form-login').hidden = !login
+      $('form-register').hidden = login
+      $('tab-login').setAttribute('aria-selected', String(login))
+      $('tab-register').setAttribute('aria-selected', String(!login))
+      showError(null)
+      showInfo(null)
+    }
+    $('tab-login').addEventListener('click', () => setTab('login'))
+    $('tab-register').addEventListener('click', () => setTab('register'))
+    $('switch-to-register').addEventListener('click', (e) => { e.preventDefault(); setTab('register') })
+    $('switch-to-login').addEventListener('click', (e) => { e.preventDefault(); setTab('login') })
+
+    const api = async (path, options = {}) => {
+      const resp = await fetch(PB_API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      })
+      const data = await resp.json().catch(() => ({}))
+      if (!resp.ok) throw new Error(data.message || `HTTP ${resp.status}`)
+      return data
+    }
+
+    // 登录
+    $('form-login').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      showError(null)
+      const fd = new FormData(e.currentTarget)
+      try {
+        const auth = await api('/api/collections/users/auth-with-password', {
+          method: 'POST',
+          body: JSON.stringify({ identity: fd.get('identity'), password: fd.get('password') }),
+        })
+        localStorage.setItem(PB_TOKEN_KEY, auth.token)
+        localStorage.setItem(PB_USER_KEY, JSON.stringify(auth.record))
+        renderProfile(auth.record)
+      } catch (err) {
+        showError(t('members.errorInvalid'))
+      }
+    })
+
+    // 注册
+    $('form-register').addEventListener('submit', async (e) => {
+      e.preventDefault()
+      showError(null)
+      const fd = new FormData(e.currentTarget)
+      const password = fd.get('password')
+      if (password !== fd.get('passwordConfirm')) {
+        showError(t('members.errorWeak'))
+        return
+      }
+      try {
+        await api('/api/collections/users/records', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: fd.get('email'),
+            password,
+            passwordConfirm: password,
+            member_level: 'free',
+            nickname: fd.get('nickname') || '',
+          }),
+        })
+        showInfo(t('members.registered'))
+        setTab('login')
+        showInfo(t('members.registered'))
+      } catch (err) {
+        const msg = String(err.message || '')
+        showError(msg.includes('unique') ? t('members.errorExists') : t('members.errorWeak'))
+      }
+    })
+
+    // 退出
+    $('btn-logout').addEventListener('click', () => {
+      localStorage.removeItem(PB_TOKEN_KEY)
+      localStorage.removeItem(PB_USER_KEY)
+      renderGuest()
+      showInfo(null)
+    })
+  })()
+</script>
+
+<style>
+  .members-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 34vh;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--canvas);
+    border: 1px solid var(--outline);
+    box-shadow: var(--shadow-card);
+    padding: 0 40px;
+  }
+
+  .members-hero__glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(60px);
+  }
+  .members-hero__glow--1 {
+    width: 420px;
+    height: 420px;
+    top: -120px;
+    right: -80px;
+    background: var(--glow);
+  }
+  .members-hero__glow--2 {
+    width: 320px;
+    height: 320px;
+    bottom: -120px;
+    left: -60px;
+    background: rgba(109, 40, 217, 0.10);
+  }
+  .members-hero__grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(var(--outline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--outline) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.18;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 70% at 60% 30%, #000 30%, transparent 75%);
+  }
+
+  .members-hero__orb {
+    position: absolute;
+    right: -80px;
+    top: -80px;
+    width: 320px;
+    height: 320px;
+    pointer-events: none;
+  }
+
+  .members-hero__inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 640px;
+    padding-block: 52px 44px;
+  }
+
+  .members-hero__lead {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--mute);
+  }
+
+  .members-hero h1 {
+    margin: 0;
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+  }
+
+  .members-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+    padding-block: 28px 64px;
+  }
+
+  .members-side {
+    position: relative;
+    padding: 36px 32px;
+    border: 1px solid var(--outline);
+    border-radius: var(--radius-lg);
+    background: var(--canvas-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+  }
+  .members-side__orb {
+    position: absolute;
+    right: -60px;
+    top: -40px;
+    width: 300px;
+    height: 300px;
+    pointer-events: none;
+  }
+  .members-side h3 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 12px 0 20px;
+    color: var(--ink);
+  }
+  .members-perks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .members-perks li {
+    position: relative;
+    padding-left: 24px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--body);
+  }
+  .members-perks li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    border: 2px solid var(--accent);
+  }
+
+  .members-card {
+    width: 100%;
+    padding: 26px;
+    border: 1px solid var(--outline);
+    border-radius: var(--radius-lg);
+    background: var(--canvas-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .members-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 22px;
+    padding: 4px;
+    border: 1px solid var(--outline);
+    border-radius: var(--radius-sm);
+    background: var(--canvas);
+  }
+
+  .members-tab {
+    padding: 9px 0;
+    border: 0;
+    border-radius: calc(var(--radius-sm) - 3px);
+    background: transparent;
+    color: var(--mute);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  .members-tab[aria-selected='true'] {
+    background: var(--accent);
+    color: #ffffff;
+  }
+
+  .members-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .members-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--mute);
+  }
+
+  .members-field input {
+    height: 42px;
+    padding: 0 14px;
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    background: var(--canvas);
+    color: var(--ink);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 160ms ease;
+  }
+
+  .members-field input:focus {
+    border-color: var(--ink);
+  }
+
+  .members-submit {
+    height: 44px;
+    margin-top: 4px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 160ms ease;
+  }
+
+  .members-submit:hover {
+    opacity: 0.85;
+  }
+
+  .members-submit--ghost {
+    background: transparent;
+    border: 1px solid var(--outline);
+    color: var(--body);
+  }
+
+  .members-switch {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--mute);
+    text-align: center;
+  }
+
+  .members-switch a {
+    color: var(--body);
+  }
+
+  .members-error {
+    margin: 14px 0 0;
+    padding: 10px 14px;
+    border: 1px solid #e5484d66;
+    border-radius: 10px;
+    background: #e5484d14;
+    color: #e5484d;
+    font-size: 13px;
+  }
+
+  .members-info {
+    margin: 14px 0 0;
+    padding: 10px 14px;
+    border: 1px solid #30a46c66;
+    border-radius: 10px;
+    background: #30a46c14;
+    color: #30a46c;
+    font-size: 13px;
+  }
+
+  .members-profile__head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .members-avatar {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--canvas);
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .members-profile__id {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .members-profile__name {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .members-profile__email {
+    margin: 2px 0 0;
+    color: var(--mute);
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .members-badge {
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .members-badge[data-level='free'] {
+    border: 1px solid var(--outline);
+    color: var(--mute);
+  }
+
+  .members-badge[data-level='vip'] {
+    border: 1px solid #f5a623;
+    background: #f5a6231a;
+    color: #f5a623;
+  }
+
+  .members-badge[data-level='partner'] {
+    border: 1px solid #8e4ec6;
+    background: #8e4ec61a;
+    color: #8e4ec6;
+  }
+
+  .members-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 0 0 20px;
+    padding: 16px;
+    border: 1px solid var(--hairline);
+    border-radius: 12px;
+  }
+
+  .members-meta > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .members-meta dt {
+    color: var(--mute);
+    font-size: 13px;
+  }
+
+  .members-meta dd {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  .members-meta__mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  @media (max-width: 880px) {
+    .members-grid {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+    .members-side {
+      min-width: 0;
+    }
+  }
+</style>

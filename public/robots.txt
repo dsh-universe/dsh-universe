@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+# 内部数据页,不开放给爬虫
+Disallow: /stats.html
+Disallow: /stats-7d.html
+Disallow: /stats-30d.html
+Disallow: /stats-cn.html
+Disallow: /stats-7d-cn.html
+Disallow: /stats-30d-cn.html
+Disallow: /monitor.html
+Disallow: /stats-data.json
+Disallow: /stats-data-1d.json
+Disallow: /stats-data-30d.json
+Disallow: /trend-data.json
+Disallow: /monitor-data.json
+Disallow: /catalog.json
+
+Sitemap: https://duink.com/sitemap-index.xml

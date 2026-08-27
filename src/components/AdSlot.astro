@@ -1,0 +1,235 @@
+---
+// AdSlot.astro — 广告位组件（可配置开关）
+// 用途：顶部 banner / 列表间插 / 侧栏，占位后可接入 AdSense 或自营广告
+// 配置方式：本组件支持 props，或直接编辑下方 SITE_AD_CONFIG 常量
+import { resolveLocale, DEFAULT_LOCALE } from '../lib/i18n'
+
+interface Props {
+  slot?: 'top-banner' | 'list-between' | 'sidebar' | 'footer'
+  label?: string
+  width?: string
+  height?: string
+}
+
+const {
+  slot = 'top-banner',
+  label = 'Ad',
+  width = '100%',
+  height = 'auto',
+} = Astro.props
+
+// 语言感知：从 URL 路径 / 查询参数解析（与站点 localStorage 机制对应）
+// 注意：SSG 阶段 resolveLocale 用 Astro.url 的 pathname 前缀判断（/en/ /ja/ 路径），
+// 客户端 localStorage 切换由页面内 script 处理（下方轮播脚本读取 dsh-site-locale）
+const urlLocale = Astro.url.pathname.split('/')[1] ?? ''
+const locale = resolveLocale(urlLocale || null)
+
+// ===== 站点广告开关（上线后在此配置） =====
+// mode: 'placeholder'（占位） | 'adsense'（Google AdSense） | 'self'（自营链接）
+// 语言感知：zh-CN / en / ja 各显示对应语言的 Vultr 广告（图片 + 轮播 + 链接）
+const SITE_AD_CONFIG = {
+  enabled: true,
+  mode: 'self',
+  adClient: '',
+  adSlot: '',
+  // 按语言区分配置：轮播 2 张（deploy / referral），各自链接
+  byLocale: {
+    'zh-CN': {
+      label: 'Ad',
+      slides: [
+        { img: '/ads/vultr-zh-deploy.png', url: 'https://www.vultr.com/?ref=9918342' },
+        { img: '/ads/vultr-zh-referral.png', url: 'https://www.vultr.com/?ref=9918343-9J' },
+      ],
+    },
+    en: {
+      label: 'Ad',
+      slides: [
+        { img: '/ads/vultr-en-deploy.png', url: 'https://www.vultr.com/?ref=9918342' },
+        { img: '/ads/vultr-en-referral.png', url: 'https://www.vultr.com/?ref=9918343-9J' },
+      ],
+    },
+    ja: {
+      label: 'Ad',
+      slides: [
+        { img: '/ads/vultr-ja-deploy.png', url: 'https://www.vultr.com/?ref=9918342' },
+        { img: '/ads/vultr-ja-referral.png', url: 'https://www.vultr.com/?ref=9918343-9J' },
+      ],
+    },
+  },
+}
+
+const adConfig = SITE_AD_CONFIG.byLocale[locale] ?? SITE_AD_CONFIG.byLocale[DEFAULT_LOCALE]
+const slides = adConfig.slides
+const adLabel = adConfig.label
+const showPlaceholder = SITE_AD_CONFIG.enabled && SITE_AD_CONFIG.mode === 'placeholder'
+const showAdsense = SITE_AD_CONFIG.enabled && SITE_AD_CONFIG.mode === 'adsense'
+const showSelf = SITE_AD_CONFIG.enabled && SITE_AD_CONFIG.mode === 'self'
+---
+
+{
+  showPlaceholder && (
+    <div class={`ad-slot ad-slot--${slot}`} style={`width:${width};height:${height}`} aria-label="Ad位">
+      <span class="ad-slot__badge">{label}</span>
+      <span class="ad-slot__hint">Ad位预留 · 可配置</span>
+    </div>
+  )
+}
+
+{
+  showAdsense && (
+    <div class={`ad-slot ad-slot--${slot}`} style={`width:${width};height:${height}`}>
+      <span class="ad-slot__badge">{label}</span>
+      <ins
+        class="adsbygoogle"
+        style={`display:block;width:${width};height:${height}`}
+        data-ad-client={SITE_AD_CONFIG.adClient}
+        data-ad-slot={SITE_AD_CONFIG.adSlot}
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+      ></ins>
+      <script is:inline>
+        (adsbygoogle = window.adsbygoogle || []).push({})
+      </script>
+    </div>
+  )
+}
+
+{
+  showSelf && (
+    <div
+      class={`ad-slot ad-slot--self ad-slot--${slot}`}
+      style={`width:${width};height:${height}`}
+    >
+      <span class="ad-slot__badge" style="display:none">{adLabel}</span>
+      {slides.map((s, i) => (
+        <a
+          class={`ad-slot__slide ${i === 0 ? 'ad-slot__slide--active' : ''}`}
+          href={s.url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <img src={s.img} alt="Vultr" loading="lazy" />
+        </a>
+      ))}
+      <script is:inline>
+        (function () {
+          const root = document.currentScript?.parentElement
+          if (!root) return
+          const slides = root.querySelectorAll('.ad-slot__slide')
+          if (slides.length < 2) return
+          let idx = 0
+          const KEY = 'dsh-site-locale'
+          // 语言切换时：localStorage 变更 → 刷新页面以重新 SSG 渲染对应语言广告
+          window.addEventListener('storage', function (e) {
+            if (e.key === KEY) location.reload()
+          })
+          setInterval(function () {
+            idx = (idx + 1) % slides.length
+            slides.forEach(function (s, i) {
+              s.classList.toggle('ad-slot__slide--active', i === idx)
+            })
+          }, 5000)
+        })()
+      </script>
+    </div>
+  )
+}
+
+<style>
+  .ad-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 60px;
+    margin-block: 16px;
+    border: 1px dashed var(--outline);
+    border-radius: 10px;
+    background: var(--canvas-soft);
+    color: var(--mute);
+    font-size: 13px;
+    text-decoration: none;
+    overflow: hidden;
+  }
+
+  .ad-slot--top-banner {
+    min-height: 80px;
+  }
+
+  .ad-slot--sidebar {
+    min-height: 250px;
+    flex-direction: column;
+  }
+
+  .ad-slot--footer {
+    min-height: 48px;
+  }
+
+  .ad-slot__badge {
+    padding: 2px 8px;
+    border: 1px solid var(--outline);
+    border-radius: 9999px;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .ad-slot__hint {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .ad-slot--self:hover {
+    border-color: var(--accent, var(--ink));
+    color: var(--ink);
+  }
+
+  .ad-slot--self {
+    position: relative;
+    padding: 0;
+    background: transparent;
+    border-style: solid;
+    display: block;
+    height: 80px;
+  }
+
+  .ad-slot__slide {
+    display: none;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    text-decoration: none;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+
+  .ad-slot__slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .ad-slot__slide--active {
+    display: block;
+    animation: adfade 0.4s ease;
+  }
+
+  @keyframes adfade {
+    from { opacity: 0.3; }
+    to { opacity: 1; }
+  }
+
+  /* 手机端：15:1 横图在窄屏 cover 必裁切、contain 字太小，隐藏广告位 */
+  @media (max-width: 767px) {
+    .ad-slot--top-banner {
+      display: none;
+    }
+  }
+
+  .ad-slot__self-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--ink);
+  }
+</style>

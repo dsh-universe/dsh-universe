@@ -1,0 +1,576 @@
+---
+// about.astro — 整屏官网页面（DSH UNIVERSE 官方介绍）
+import { ArrowUpRight, Bot, CalendarDays, Mail, TrendingUp } from '@lucide/astro'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import FeaturesSection from '../components/FeaturesSection.astro'
+import { sortCatalogEntries, type Catalog } from '../lib/catalog'
+import { catalogData } from '../lib/catalog-data'
+import { formatCompactNumber } from '../lib/catalog'
+
+const catalog = catalogData as Catalog
+const totalStars = catalog.repositories.reduce((sum, r) => sum + (r.stars || 0), 0)
+const categoryCount = Object.keys(catalog.stats.categories ?? {}).length
+const pluginCount = catalog.stats.fetched ?? catalog.repositories.length
+
+// TODO: 上线前替换为真实联系邮箱
+const CONTACT_EMAIL = 'contact@duink.com'
+---
+
+<BaseLayout pageTitleKey="about.pageTitle">
+  <!-- Hero：全屏 -->
+  <section class="about-hero">
+    <div class="about-hero__glow about-hero__glow--1" aria-hidden="true"></div>
+    <div class="about-hero__glow about-hero__glow--2" aria-hidden="true"></div>
+    <div class="about-hero__grid" aria-hidden="true"></div>
+    <svg class="about-hero__planet" viewBox="0 0 520 520" aria-hidden="true">
+      <defs>
+        <radialGradient id="planet-core" cx="38%" cy="32%" r="75%">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.85" />
+          <stop offset="45%" stop-color="var(--accent)" stop-opacity="0.6" />
+          <stop offset="80%" stop-color="var(--accent-strong)" stop-opacity="0.75" />
+          <stop offset="100%" stop-color="var(--canvas-card)" />
+        </radialGradient>
+        <linearGradient id="planet-ring" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="var(--accent)" stop-opacity="0" />
+          <stop offset="30%" stop-color="var(--accent)" stop-opacity="0.7" />
+          <stop offset="70%" stop-color="var(--accent)" stop-opacity="0.7" />
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0" />
+        </linearGradient>
+        <radialGradient id="planet-atmo" cx="50%" cy="50%" r="50%">
+          <stop offset="82%" stop-color="transparent" />
+          <stop offset="96%" stop-color="var(--accent)" stop-opacity="0.35" />
+          <stop offset="100%" stop-color="var(--accent)" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <!-- 轨道环（后面） -->
+      <ellipse cx="260" cy="270" rx="215" ry="62" fill="none" stroke="url(#planet-ring)" stroke-width="2.5" transform="rotate(-14 260 270)" />
+      <!-- 星球本体 -->
+      <circle cx="260" cy="270" r="118" fill="url(#planet-core)" />
+      <!-- 大气层 -->
+      <circle cx="260" cy="270" r="118" fill="url(#planet-atmo)" />
+      <!-- 大陆纹理 -->
+      <g fill="#ffffff" opacity="0.14">
+        <ellipse cx="222" cy="238" rx="34" ry="20" transform="rotate(-18 222 238)" />
+        <ellipse cx="282" cy="252" rx="26" ry="16" transform="rotate(24 282 252)" />
+        <ellipse cx="240" cy="300" rx="20" ry="30" transform="rotate(8 240 300)" />
+        <circle cx="300" cy="296" r="14" />
+        <circle cx="216" cy="290" r="9" />
+      </g>
+      <!-- 高光 -->
+      <ellipse cx="222" cy="222" rx="58" ry="42" fill="#ffffff" opacity="0.18" transform="rotate(-32 222 222)" />
+      <circle cx="206" cy="206" r="26" fill="#ffffff" opacity="0.1" />
+      <!-- 轨道环（前面，盖住星球下半） -->
+      <path d="M 74 300 A 215 62 0 0 0 446 300" fill="none" stroke="url(#planet-ring)" stroke-width="2.5" transform="rotate(-14 260 270)" opacity="0.9" />
+      <!-- 卫星 -->
+      <circle cx="422" cy="196" r="9" fill="var(--accent)" opacity="0.9" />
+      <circle cx="422" cy="196" r="15" fill="var(--accent)" opacity="0.2" />
+      <circle cx="96" cy="352" r="5" fill="#7cc0ff" opacity="0.8" />
+      <!-- 星星 -->
+      <circle cx="60" cy="90" r="2.2" fill="#ffffff" opacity="0.8" />
+      <circle cx="452" cy="70" r="1.8" fill="#ffffff" opacity="0.7" />
+      <circle cx="470" cy="420" r="2" fill="#ffffff" opacity="0.6" />
+      <circle cx="40" cy="440" r="1.6" fill="#ffffff" opacity="0.6" />
+      <circle cx="130" cy="60" r="1.5" fill="#ffffff" opacity="0.5" />
+      <circle cx="380" cy="52" r="1.8" fill="#ffffff" opacity="0.55" />
+      <circle cx="500" cy="250" r="1.6" fill="#ffffff" opacity="0.5" />
+      <circle cx="30" cy="260" r="1.8" fill="#ffffff" opacity="0.5" />
+    </svg>
+    <div class="container about-hero__inner">
+      <p class="mono-label">DSH UNIVERSE / OFFICIAL SITE</p>
+      <h1 class="about-hero__title" data-i18n="about.title">DSH UNIVERSE</h1>
+      <p class="about-hero__slogan">
+        <span data-i18n="about.slogan1">DeepSeek Harness 生态宇宙</span>
+        <span class="about-hero__slogan-accent" aria-hidden="true"> · </span>
+        <span class="about-hero__slogan-accent" data-i18n="about.slogan2">万物皆插件</span>
+      </p>
+      <p class="about-hero__lead" data-i18n="about.lead">
+        Auto-discovery、/10类并验证 DeepSeek Harness 生态的插件、技能与应用，帮助开发者更快发现和使用Excellent的 DSH 插件。
+      </p>
+      <div class="about-hero__cta">
+        <a class="about-btn about-btn--primary" href="/" data-i18n="about.ctaBrowse">浏览插件市场</a>
+        <a class="about-btn about-btn--ghost" href="/submit" data-i18n="about.ctaSubmit">提交你的插件</a>
+      </div>
+      <dl class="about-hero__stats">
+        <div>
+          <dt data-i18n="poster.plugins">收录插件</dt>
+          <dd>{pluginCount}</dd>
+        </div>
+        <div>
+          <dt data-i18n="poster.categories">功能/10类</dt>
+          <dd>{categoryCount}</dd>
+        </div>
+        <div>
+          <dt>Stars</dt>
+          <dd>{formatCompactNumber(totalStars)}</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <FeaturesSection />
+
+  <!-- 区块 1.5：我们运营的内容（内容矩阵） -->
+  <section class="about-section about-media-section">
+    <div class="container">
+      <p class="mono-label">OUR MEDIA / CONTENT</p>
+      <h2 class="about-media__title" data-i18n="about.mediaTitle">我们运营的内容</h2>
+      <div class="about-media__grid">
+        <div class="about-media__card">
+          <span class="about-media__icon" aria-hidden="true">
+            <CalendarDays size={20} stroke-width={1.6} />
+          </span>
+          <h3 data-i18n="about.media1Name">每日一曆</h3>
+          <p data-i18n="about.media1Desc">黄历 · 卦象 · 五行，公众号Daily</p>
+        </div>
+        <a class="about-media__card" href="/news">
+          <span class="about-media__icon" aria-hidden="true">
+            <Bot size={20} stroke-width={1.6} />
+          </span>
+          <h3 data-i18n="about.media2Name">AI Tech日报</h3>
+          <p data-i18n="about.media2Desc">海外 AI 动态速递 · 聿芯</p>
+          <ArrowUpRight class="about-media__arrow" size={15} stroke-width={1.8} aria-hidden="true" />
+        </a>
+        <a class="about-media__card" href="/news">
+          <span class="about-media__icon" aria-hidden="true">
+            <TrendingUp size={20} stroke-width={1.6} />
+          </span>
+          <h3 data-i18n="about.media3Name">Finance日报</h3>
+          <p data-i18n="about.media3Desc">全球市场动态速递 · 聿观</p>
+          <ArrowUpRight class="about-media__arrow" size={15} stroke-width={1.8} aria-hidden="true" />
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 区块 2：数据来源 + 使命 -->
+  <section class="about-section about-section--alt">
+    <div class="container about-split">
+      <div class="about-block">
+        <p class="mono-label">DATA SOURCE</p>
+        <h2 data-i18n="about.dataTitle">数据来源</h2>
+        <p data-i18n="about.dataBody">
+          所有项目数据来自 GitHub 公开仓库元数据，仅做索引与整理，不执行第三方代码。收录不代表审核、兼容性或Security性背书，安装前请审阅源码。
+        </p>
+      </div>
+      <div class="about-block">
+        <p class="mono-label">MISSION</p>
+        <h2 data-i18n="about.missionTitle">我们的使命</h2>
+        <p data-i18n="about.missionBody">
+          Every plugin, skill, and app in the DeepSeek Harness ecosystem should be easy to discover. We believe everything is a plugin — and that great tools值得被看见。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 区块 4：联系我们 -->
+
+  <section class="about-section about-stats-section">
+    <div class="container">
+      <p class="mono-label">ECOSYSTEM / NUMBERS</p>
+      <h2 data-i18n="about.statsTitle">生态数字</h2>
+      <div class="about-stats__grid">
+        <div class="about-stat">
+          <strong>{catalog.stats.fetched}</strong>
+          <span data-i18n="about.statsPlugins">收录插件</span>
+        </div>
+        <div class="about-stat">
+          <strong>{Object.keys(catalog.stats.categories ?? {}).length}</strong>
+          <span data-i18n="about.statsCategories">功能/10类</span>
+        </div>
+        <div class="about-stat">
+          <strong>{catalog.stats.verified}</strong>
+          <span data-i18n="about.statsVerified">已实机验证</span>
+        </div>
+        <div class="about-stat">
+          <strong>{catalog.stats.reportedByGitHub ?? '—'}</strong>
+          <span data-i18n="about.statsReported">GitHub 活动仓库</span>
+        </div>
+      </div>
+      <p class="about-stats__note" data-i18n="about.statsNote">数据每 30 /10钟自动同步自 GitHub，收录即更新。</p>
+    </div>
+  </section>
+
+  <section class="about-section about-contact-section">
+    <div class="container about-contact">
+      <p class="mono-label">CONTACT</p>
+      <h2 data-i18n="about.contactTitle">联系我们</h2>
+      <p data-i18n="about.contactBody">
+        插件Submit、合作建议、问题反馈，欢迎通过邮件与我们联系。
+      </p>
+      <a class="about-btn about-btn--primary" href={`mailto:${CONTACT_EMAIL}`}>
+        <Mail size={15} stroke-width={1.6} />
+        {CONTACT_EMAIL}
+        <ArrowUpRight size={13} stroke-width={1.6} />
+      </a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Hero 全屏 */
+  .about-hero {
+    position: relative;
+    display: flex;
+    min-height: 34vh;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .about-hero__glow {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(80px);
+  }
+
+  .about-hero__glow--1 {
+    top: -10%;
+    left: -5%;
+    width: 460px;
+    height: 460px;
+    background: var(--accent);
+    opacity: 0.26;
+  }
+
+  .about-hero__glow--2 {
+    right: -8%;
+    bottom: -20%;
+    width: 520px;
+    height: 520px;
+    background: var(--accent-strong);
+    opacity: 0.2;
+  }
+
+  .about-hero__grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--outline) 1px, transparent 1px),
+      linear-gradient(90deg, var(--outline) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse at 40% 30%, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 78%);
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .about-hero__planet {
+    position: absolute;
+    right: 6%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: min(520px, 44vw);
+    height: auto;
+    pointer-events: none;
+  }
+
+  .about-hero__inner {
+    position: relative;
+    padding-block: 80px 60px;
+  }
+
+  .about-hero__title {
+    margin: 14px 0 0;
+    font-size: clamp(56px, 8.5vw, 100px);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+  }
+
+  .about-hero__slogan {
+    margin: 16px 0 0;
+    font-size: clamp(17px, 2.2vw, 24px);
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .about-hero__slogan-accent {
+    color: var(--accent);
+  }
+
+  .about-hero__lead {
+    margin: 18px 0 0;
+    max-width: 600px;
+    color: var(--body);
+    font-size: 15.5px;
+    line-height: 1.8;
+  }
+
+  .about-hero__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .about-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 11px 22px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .about-btn--primary {
+    background: var(--accent);
+    color: var(--canvas);
+  }
+
+  .about-btn--primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px var(--accent-soft);
+  }
+
+  .about-btn--ghost {
+    border: 1px solid var(--outline);
+    color: var(--ink);
+  }
+
+  .about-btn--ghost:hover {
+    background: var(--accent-soft);
+  }
+
+  .about-hero__stats {
+    display: flex;
+    gap: 0;
+    margin: 40px 0 0;
+    border: 1px solid var(--outline);
+    border-radius: 14px;
+    background: var(--canvas-soft);
+    overflow: hidden;
+    width: fit-content;
+  }
+
+  .about-hero__stats div {
+    min-width: 110px;
+    padding: 14px 24px;
+    text-align: center;
+  }
+
+  .about-hero__stats div + div {
+    border-left: 1px solid var(--outline);
+  }
+
+  .about-hero__stats dt {
+    color: var(--mute);
+    font-size: 12px;
+  }
+
+  .about-hero__stats dd {
+    margin: 4px 0 0;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+
+  /* 通用区块 */
+  .about-section {
+    padding-block: 72px 64px;
+    border-top: 1px solid var(--outline);
+  }
+
+  .about-section--alt {
+    background: var(--canvas-soft);
+  }
+
+  .about-section__title {
+    margin: 10px 0 0;
+    font-size: clamp(24px, 3.5vw, 36px);
+    letter-spacing: -0.02em;
+  }
+
+  /* 三卡 */
+  .about-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-top: 32px;
+  }
+
+  .about-feature {
+    padding: 28px;
+    border: 1px solid var(--outline);
+    border-radius: 16px;
+    background: var(--canvas-card);
+  }
+
+  .about-feature__icon {
+    display: inline-grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .about-feature h3 {
+    margin: 16px 0 0;
+    font-size: 17px;
+  }
+
+  .about-feature p {
+    margin: 8px 0 0;
+    color: var(--body);
+    font-size: 14px;
+    line-height: 1.75;
+  }
+
+  /* 内容矩阵（我们运营的内容） */
+  .about-media-section {
+    padding-block: 72px 64px;
+  }
+  .about-media__title {
+    margin: 10px 0 0;
+    font-size: clamp(24px, 3.5vw, 36px);
+    letter-spacing: -0.02em;
+  }
+  .about-media__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin-top: 32px;
+  }
+  .about-media__card {
+    position: relative;
+    display: block;
+    padding: 28px;
+    border: 1px solid var(--outline);
+    border-radius: 16px;
+    background: var(--canvas-card);
+    box-shadow: var(--shadow-card);
+    text-decoration: none;
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  }
+  a.about-media__card:hover {
+    transform: translateY(-2px);
+    border-color: var(--outline-strong);
+    box-shadow: var(--shadow-card-hover);
+  }
+  .about-media__icon {
+    display: inline-grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .about-media__card h3 {
+    margin: 16px 0 0;
+    font-size: 17px;
+  }
+  .about-media__card p {
+    margin: 8px 0 0;
+    color: var(--body);
+    font-size: 14px;
+    line-height: 1.75;
+  }
+  .about-media__arrow {
+    position: absolute;
+    top: 26px;
+    right: 24px;
+    color: var(--mute);
+    transition: color 160ms ease, transform 160ms ease;
+  }
+  a.about-media__card:hover .about-media__arrow {
+    color: var(--accent);
+    transform: translate(2px, -2px);
+  }
+
+  /* 左右分栏 */
+  .about-split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 48px;
+  }
+
+  .about-block h2 {
+    margin: 10px 0 0;
+    font-size: clamp(20px, 2.8vw, 28px);
+    letter-spacing: -0.015em;
+  }
+
+  .about-block p:not(.mono-label) {
+    margin: 14px 0 0;
+    max-width: 480px;
+    color: var(--body);
+    font-size: 14.5px;
+    line-height: 1.8;
+  }
+
+  /* 联系区 */
+  .about-stats-section {
+    padding-block: 48px;
+  }
+  .about-stats__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 28px;
+  }
+  .about-stat {
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    background: var(--canvas-soft);
+    padding: 24px 20px;
+    text-align: center;
+  }
+  .about-stat strong {
+    display: block;
+    font-size: 40px;
+    font-weight: 900;
+    color: var(--accent);
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  .about-stat span {
+    font-size: 14px;
+    color: var(--mute);
+  }
+  .about-stats__note {
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--mute);
+  }
+  .about-contact-section {
+    text-align: center;
+  }
+
+  .about-contact h2 {
+    margin: 10px 0 0;
+    font-size: clamp(24px, 3.5vw, 36px);
+    letter-spacing: -0.02em;
+  }
+
+  .about-contact p:not(.mono-label) {
+    margin: 14px auto 0;
+    max-width: 460px;
+    color: var(--body);
+    font-size: 14.5px;
+    line-height: 1.8;
+  }
+
+  .about-contact .about-btn {
+    margin-top: 24px;
+  }
+
+  @media (max-width: 760px) {
+    .about-hero {
+      min-height: auto;
+    }
+
+    .about-hero__stats {
+      width: 100%;
+    }
+
+    .about-hero__stats div {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+</style>

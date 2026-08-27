@@ -1,0 +1,152 @@
+---
+// TypeGate.astro — 插件市场 / 技能专区 / AI 情报 / 什么值得插件 四入口卡（首页/技能/资讯/评测页互跳）
+import { ArrowUpRight, Newspaper, Puzzle, Sparkles, BookOpen, ShieldCheck } from '@lucide/astro'
+import { catalogData } from '../lib/catalog-data'
+import reviewsData from '../data/reviews.json'
+import type { Catalog } from '../lib/catalog'
+
+const catalog = catalogData as Catalog
+const pluginCount = catalog.stats.fetched ?? catalog.repositories.length
+const skillCount = (catalog.stats.projectTypes as Record<string, number> | undefined)?.skill ?? 45
+const { active } = Astro.props as { active?: 'plugins' | 'skills' | 'news' | 'reviews' }
+---
+
+<section class="type-gate" aria-label="Browse">
+  <div class="container type-gate__grid">
+    <a class="type-gate__card" href="/" data-gate-active={active === 'plugins' ? 'true' : undefined}>
+      <span class="type-gate__icon" aria-hidden="true">
+        <Puzzle size={22} stroke-width={1.6} />
+      </span>
+      <span class="type-gate__text">
+        <strong data-i18n="gate.plugins">插件市场</strong>
+        <em data-i18n="gate.pluginsSub">插件 · 应用 · 合集</em>
+      </span>
+      <span class="type-gate__count">{pluginCount}</span>
+      <ArrowUpRight class="type-gate__arrow" size={18} stroke-width={1.8} aria-hidden="true" />
+    </a>
+    <a class="type-gate__card" href="/skills" data-gate-active={active === 'skills' ? 'true' : undefined}>
+      <span class="type-gate__icon" aria-hidden="true">
+        <Sparkles size={22} stroke-width={1.6} />
+      </span>
+      <span class="type-gate__text">
+        <strong data-i18n="gate.skills">Skills</strong>
+        <em data-i18n="gate.skillsSub">让 AI 拥有特定能力</em>
+      </span>
+      <span class="type-gate__count">{skillCount}</span>
+      <ArrowUpRight class="type-gate__arrow" size={18} stroke-width={1.8} aria-hidden="true" />
+    </a>
+    <a class="type-gate__card" href="/news" data-gate-active={active === 'news' ? 'true' : undefined}>
+      <span class="type-gate__icon" aria-hidden="true">
+        <Newspaper size={22} stroke-width={1.6} />
+      </span>
+      <span class="type-gate__text">
+        <strong data-i18n="gate.news">AI 情报</strong>
+        <em data-i18n="gate.newsSub">每日海外 AI Tech与Finance</em>
+      </span>
+      <span class="type-gate__badge" data-i18n="gate.daily">Daily</span>
+      <ArrowUpRight class="type-gate__arrow" size={18} stroke-width={1.8} aria-hidden="true" />
+    </a>
+      </div>
+</section>
+
+<style>
+  .type-gate {
+    margin-block: 26px 28px;
+  }
+  .type-gate__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 767px) {
+    .type-gate__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .type-gate__card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    background: var(--canvas-soft);
+    box-shadow: var(--shadow-card);
+    color: var(--ink);
+    text-decoration: none;
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  }
+  .type-gate__card:hover {
+    transform: translateY(-2px);
+    border-color: var(--outline-strong);
+    box-shadow: var(--shadow-card-hover);
+  }
+  .type-gate__card[data-gate-active='true'] {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), var(--shadow-card);
+  }
+  .type-gate__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    flex: 0 0 auto;
+  }
+  .type-gate__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+  .type-gate__text strong {
+    font-size: 16px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .type-gate__text em {
+    font-style: normal;
+    font-size: 12.5px;
+    color: var(--mute);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .type-gate__count {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 34px;
+    text-align: right;
+  }
+  .type-gate__badge {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    background: var(--accent-soft);
+    white-space: nowrap;
+  }
+  .type-gate__arrow {
+    color: var(--mute);
+    flex: 0 0 auto;
+    transition: color 160ms ease, transform 160ms ease;
+  }
+  .type-gate__card:hover .type-gate__arrow {
+    color: var(--accent);
+    transform: translate(2px, -2px);
+  }
+</style>

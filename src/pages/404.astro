@@ -1,0 +1,88 @@
+---
+// 404.astro — 跳转到 /about
+import BaseLayout from '../layouts/BaseLayout.astro'
+
+const title = 'Page Not Found · DSH UNIVERSE'
+const description = 'The page you are looking for does not exist.'
+---
+
+<BaseLayout title={title} description={description}>
+  <section class="notfound">
+    <div class="container notfound__inner">
+      <p class="mono-label">404 / NOT FOUND</p>
+      <h1 data-i18n="nf.title">宇宙里没有这个页面</h1>
+      <p class="notfound__sub" data-i18n="nf.sub">
+        This page has no content yet — browse the plugin marketplace instead.
+      </p>
+      <div class="notfound__actions">
+        <a class="notfound__btn notfound__btn--primary" href="/">
+          Back to Home
+        </a>
+        <a class="notfound__btn notfound__btn--ghost" href="/about">
+          About
+        </a>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .notfound {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    padding-block: 80px;
+  }
+  .notfound__inner {
+    text-align: center;
+    max-width: 640px;
+  }
+  .notfound h1 {
+    font-size: clamp(34px, 5vw, 56px);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    margin: 14px 0 16px;
+    color: var(--ink);
+  }
+  .notfound__sub {
+    font-size: 16px;
+    color: var(--mute);
+    margin: 0 0 36px;
+    line-height: 1.7;
+  }
+  .notfound__actions {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .notfound__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 13px 28px;
+    text-decoration: none;
+    transition: all 0.2s ease-in;
+  }
+  .notfound__btn--primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: #fff;
+    box-shadow: 0 8px 20px -8px var(--glow);
+  }
+  .notfound__btn--primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.06);
+  }
+  .notfound__btn--ghost {
+    border: 1px solid var(--outline-strong);
+    color: var(--ink);
+  }
+  .notfound__btn--ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+</style>

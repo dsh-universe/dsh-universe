@@ -1,0 +1,35 @@
+node_modules/
+dist/
+.astro/
+coverage/
+validation/reports/
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# 运行期缓存（部署时由脚本重新生成/单独传输）
+public/plugin-previews/
+public/readmes/
+
+# Local-only documentation. README files remain trackable.
+*.md
+*.mdx
+*.rst
+*.adoc
+*.txt
+!README*
+!**/README*
+docs/*
+
+# These are public static text assets, not documentation.
+!public/robots.txt
+!public/ff823371ff4b9de02e0048648a569178.txt
+
+# Local agent and assistant instructions
+.agents/
+.claude/
+.codex/
+.cursorrules
+validation-input/
+*.tgz

@@ -1,0 +1,124 @@
+---
+// FeaturesSection.astro — AstroWind 式特性卡区（自动收录 / 分类验证 / 一键安装）
+import { RefreshCw, ShieldCheck, PlugZap } from '@lucide/astro'
+
+const features = [
+  {
+    icon: RefreshCw,
+    titleKey: 'features.sync',
+    descKey: 'features.syncDesc',
+    title: 'Auto-discovery',
+    desc: 'GitHub 双话题仓库每 30 /10钟自动同步，生态新增即收录，不遗漏。',
+  },
+  {
+    icon: ShieldCheck,
+    titleKey: 'features.validate',
+    descKey: 'features.validateDesc',
+    title: 'Validation pipeline',
+    desc: '结构检查、实机验证、Security review——多阶段验证体系，拒绝僵尸仓库。',
+  },
+  {
+    icon: PlugZap,
+    titleKey: 'features.install',
+    descKey: 'features.installDesc',
+    title: 'One-click install',
+    desc: 'DSH web plugin bundle — install with one click in Harness, zero config.',
+  },
+]
+---
+
+<section class="features" aria-label="Site Features">
+  <div class="container">
+    <p class="mono-label features__label">WHY DSH UNIVERSE</p>
+    <h2 class="features__title" data-i18n="features.heading">为什么选择我们</h2>
+    <div class="features__grid">
+      {features.map((f) => (
+        <article class="features__card">
+          <span class="features__icon" aria-hidden="true">
+            <f.icon size={22} stroke-width={1.6} />
+          </span>
+          <h3 data-i18n={f.titleKey}>{f.title}</h3>
+          <p data-i18n={f.descKey}>{f.desc}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .features {
+    padding-block: 56px 8px;
+  }
+
+  .features__label {
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .features__title {
+    text-align: center;
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 36px;
+    color: var(--ink);
+  }
+
+  .features__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .features__card {
+    padding: 28px 26px;
+    border-radius: var(--radius);
+    background: var(--canvas-card);
+    border: 1px solid var(--outline);
+    box-shadow: var(--shadow-card);
+    transition: all 0.25s ease-in;
+  }
+
+  .features__card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--outline-strong);
+  }
+
+  .features__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+
+  .features__card:hover .features__icon {
+    color: var(--accent-alt);
+    background: color-mix(in srgb, var(--accent-alt) 12%, transparent);
+  }
+
+  .features__card h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+
+  .features__card p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--mute);
+    margin: 0;
+  }
+
+  @media (max-width: 860px) {
+    .features__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

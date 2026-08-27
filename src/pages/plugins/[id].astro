@@ -1,0 +1,808 @@
+---
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  BookOpen,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  CircleAlert,
+  CircleDot,
+  Copy,
+  Download,
+  ExternalLink,
+  GitFork,
+  CodeXml,
+  Scale,
+  Star,
+} from '@lucide/astro'
+
+import ProjectCard from '../../components/ProjectCard.astro'
+import BaseLayout from '../../layouts/BaseLayout.astro'
+import { formatCompactNumber, formatRelativeDate, sortCatalogEntries, type Catalog, type CatalogEntry } from '../../lib/catalog'
+import { catalogData } from '../../lib/catalog-data'
+
+// English relative date for metrics display
+function enRelativeDate(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'unknown'
+  const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86400000))
+  if (days === 0) return 'today'
+  if (days === 1) return '1 day ago'
+  return `${days} days ago`
+}
+import { getCategory, getProjectTypeLabel } from '../../lib/classification'
+import { getReadmeApiUrl } from '../../lib/readme'
+import { buildLocalDshInstallUrl } from '../../lib/dsh-install-link'
+import { SITE_URL } from '../../lib/seo'
+import { VALIDATION_STAGE_DEFINITIONS } from '../../lib/validation'
+
+export function getStaticPaths() {
+  const catalog = catalogData as Catalog
+  return catalog.repositories.map((repository) => ({
+    params: { id: repository.slug },
+    props: { repository },
+  }))
+}
+
+interface Props {
+  repository: CatalogEntry
+}
+
+  (rv: any) => String(rv.repositoryId) === String(Astro.props.repository.repositoryId),
+)
+
+const { repository } = Astro.props as Props
+const category = getCategory(repository.category)
+const sourceClassificationActive = repository.classificationSource === 'source'
+const classificationSignals = sourceClassificationActive && (repository.classificationSignals?.length ?? 0) > 0
+  ? repository.classificationSignals
+  : repository.matchedTopics
+const classificationPrefixKey = sourceClassificationActive
+  ? 'detail.classificationSourcePrefix'
+  : 'detail.classificationPrefix'
+const installableTypes = new Set(['plugin', 'skill', 'collection', 'channel'])
+const installCandidate = installableTypes.has(repository.projectType)
+  && repository.install?.status === 'recognized'
+  ? repository.install.candidate ?? null
+  : null
+const hasInstallReference = installCandidate !== null
+const installCommand = installCandidate?.command ?? null
+const localDshInstallUrl = installCandidate?.executable === true
+  ? buildLocalDshInstallUrl(repository.id)
+  : null
+const validationStageStatusLabels = {
+  pending: 'Pending',
+  running: 'Running',
+  passed: 'Passed',
+  failed: 'Failed',
+  inconclusive: 'Needs review',
+  quarantined: 'Security review',
+  skipped: 'N/A',
+}
+const validationUpdatedAt = repository.validation.updatedAt
+  ? new Intl.DateTimeFormat('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(new Date(repository.validation.updatedAt))
+  : null
+const related = sortCatalogEntries(
+  (catalogData as Catalog).repositories
+    .filter((item) => item.repositoryId !== repository.repositoryId && item.category === repository.category),
+  'recommended',
+).slice(0, 3)
+const readmeApiUrl = getReadmeApiUrl(repository.fullName)
+const absoluteDate = new Intl.DateTimeFormat('zh-CN', {
+  timeZone: 'Asia/Shanghai',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+}).format(new Date(repository.pushedAt))
+const baseUrl = `${import.meta.env.BASE_URL.replace(/\/+$/, '')}/`
+
+// 详情页 JSON-LD（SoftwareApplication 结构化数据，利于搜索引擎收录）
+const detailStructuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: repository.name,
+  description: repository.description ?? '',
+  url: `${SITE_URL}/plugins/${repository.slug}`,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'DeepSeek Harness',
+  publisher: {
+    '@type': 'Organization',
+    name: repository.owner.login,
+  },
+  author: {
+    '@type': 'Person',
+    name: repository.owner.login,
+  },
+  dateModified: repository.pushedAt,
+  codeRepository: `https://github.com/${repository.fullName}`,
+}
+---
+
+<BaseLayout
+  title={`${repository.name} · DSH Universe`}
+  description={repository.description}
+  pageTitleKey="site.pageTitle.detail"
+  pageTitleParams={{ name: repository.name }}
+  structuredData={detailStructuredData}
+>
+  <section class="detail-hero">
+    <div class="container">
+      <a class="back-link" href={baseUrl} data-catalog-back>
+        <ArrowLeft size={18} stroke-width={2} />
+        <span data-i18n="detail.back">返回插件市场</span>
+      </a>
+
+      <div class="detail-hero__grid">
+        <div class="detail-identity">
+          <div class="detail-eyebrow">
+            <span class="category-dot" style={`--category-color: ${category.color}`}></span>
+            <span class="mono-label" data-i18n={`category.${repository.category}`}>{category.label}</span>
+            <span data-i18n={`projectType.${repository.projectType}`}>{getProjectTypeLabel(repository.projectType)}</span>
+          </div>
+          <div class="detail-title">
+            <img src={repository.owner.avatarUrl} width="64" height="64" alt="" />
+            <div>
+              <h1>{repository.name}</h1>
+              <p>{repository.fullName}</p>
+            </div>
+          </div>
+          <p class="detail-description">{repository.description}</p>
+          <div class="detail-actions">
+            <a class="primary-button" href={repository.url} target="_blank" rel="noreferrer">
+              <CodeXml size={17} stroke-width={1.6} />
+              <span data-i18n="detail.viewRepository">查看仓库</span>
+              <ArrowUpRight size={15} stroke-width={1.6} />
+            </a>
+            {repository.homepage && (
+              <a class="outline-button" href={repository.homepage} target="_blank" rel="noreferrer">
+                <ExternalLink size={16} stroke-width={1.6} />
+                <span data-i18n="detail.homepage">项目主页</span>
+              </a>
+            )}
+          </div>
+        </div>
+
+        <div class="detail-visual">
+          <div class="repo-og-frame">
+            <img
+              class="repo-og"
+              src={`${baseUrl}plugin-previews/${repository.repositoryId}.png`}
+              alt={`${repository.fullName} Screenshot preview`}
+              loading="lazy"
+              referrerpolicy="no-referrer"
+              onerror="if(!this.dataset.r){this.dataset.r='1';this.src=`https://opengraph.githubassets.com/1/${repository.fullName}`}else{this.src='/plugin-preview-placeholder.svg'}"
+            />
+            <div class="repo-og-fallback" style="display:none">
+              <Star size={18} stroke-width={1.6} />
+              <span>{formatCompactNumber(repository.stars)}</span>
+            </div>
+          </div>
+          <dl class="detail-metrics" aria-label="仓库指标" data-i18n-aria-label="detail.metrics">
+            <div><dt><Star size={15} stroke-width={1.6} /> Stars</dt><dd>{formatCompactNumber(repository.stars)}</dd></div>
+            <div><dt><GitFork size={15} stroke-width={1.6} /> Forks</dt><dd>{formatCompactNumber(repository.forks)}</dd></div>
+            <div><dt><CircleDot size={15} stroke-width={1.6} /> Issues</dt><dd>{formatCompactNumber(repository.openIssues)}</dd></div>
+            <div>
+              <dt><CalendarDays size={15} stroke-width={1.6} /> Update</dt>
+              <dd>{enRelativeDate(repository.pushedAt)}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="detail-content">
+    <div class="container detail-content__grid">
+      <div class="detail-main">
+
+                )}
+
+        <section class="detail-section readme-section">
+          <details
+            class="readme-disclosure"
+            id="readme-disclosure"
+            data-readme-api={readmeApiUrl}
+            data-readme-local={`${baseUrl}readmes/${repository.repositoryId}.html`}
+            data-full-name={repository.fullName}
+            data-default-branch={repository.defaultBranch}
+          >
+            <summary>
+              <span class="readme-heading">
+                <span class="mono-label">PROJECT README</span>
+                <span class="readme-title"><span data-i18n="detail.readmeTitle">项目说明</span></span>
+              </span>
+              <span class="readme-toggle">
+                <span class="readme-toggle__closed" data-i18n="detail.readmeExpand">展开</span>
+                <span class="readme-toggle__open" data-i18n="detail.readmeCollapse">Collapse</span>
+                <ChevronDown size={18} stroke-width={1.6} />
+              </span>
+            </summary>
+            <div class="readme-content" id="readme-content" aria-live="polite" aria-busy="false">
+              <p class="readme-state" id="readme-state" data-i18n="detail.readmeLoading">正在读取 GitHub README...</p>
+              <div class="markdown-body" id="readme-body" hidden></div>
+              <div class="readme-error" id="readme-error" hidden>
+                <p id="readme-error-message" data-i18n="detail.readmeFailed">README 暂时无法读取。</p>
+                <button class="outline-button" id="retry-readme" type="button" data-i18n="detail.retry">重试</button>
+                <a class="outline-button" href={repository.url} target="_blank" rel="noreferrer" data-i18n="detail.goRepository">前往仓库</a>
+              </div>
+            </div>
+          </details>
+        </section>
+
+        {hasInstallReference && (
+          <section class="detail-section install-section">
+            <div class="install-heading">
+              <div><p class="mono-label">INSTALL REFERENCE</p><h2 data-i18n="detail.installReference">安装参考</h2></div>
+              <span data-tone={repository.validation.tone}>
+                <CircleAlert size={15} stroke-width={1.6} />
+                <span data-i18n={`validation.status.${repository.validation.overall}`}>{repository.validation.label}</span>
+              </span>
+            </div>
+            <div class="command-row">
+              <code id="install-command">{installCommand}</code>
+              <button
+                class="icon-button"
+                id="copy-command"
+                type="button"
+                aria-label="Copy install reference"
+                title="Copy install reference"
+                data-i18n-aria-label="detail.copyInstall"
+                data-i18n-title="detail.copyInstall"
+              >
+                <Copy class="copy-icon" size={16} stroke-width={1.6} />
+                <Check class="check-icon" size={16} stroke-width={1.6} />
+              </button>
+            </div>
+            <div class="install-actions">
+              {localDshInstallUrl && (
+                <a
+                  class="primary-button install-dsh-button"
+                  href={localDshInstallUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`Install in local DSH: ${repository.fullName}`}
+                  data-i18n-aria-label="detail.installLocalAria"
+                  data-i18n-param-name={repository.fullName}
+                >
+                  <Download size={17} stroke-width={1.6} />
+                  <span data-i18n="detail.installLocal">Install in local DSH</span>
+                  <ArrowUpRight size={15} stroke-width={1.6} />
+                </a>
+              )}
+            </div>
+            <p>
+              <span data-i18n={installCandidate?.executable === true ? 'detail.installExecutableNote' : 'detail.installUnverifiedNote'}>
+                {installCandidate?.executable === true
+                  ? 'This command passed the install-plan safety check and can be executed by a DSH host; verification status is not equivalent to a security audit or official背书。'
+                  : 'This command comes from an explicit install reference in the README and is provided for reference only — it is never auto-executed by a DSH host.'}
+              </span>
+            </p>
+          </section>
+        )}
+
+        <section class="detail-section">
+          <p class="mono-label">PROJECT TOPICS</p>
+          <h2 data-i18n="detail.tags">项目标签</h2>
+          <div class="topic-cloud">
+            {repository.topics.map((topic) => (
+              <a
+                href={`${baseUrl}topics/${encodeURIComponent(topic)}`}
+                aria-label={`Browse ${topic} 标签的所有项目`}
+                data-i18n-aria-label="detail.tagAria"
+                data-i18n-param-topic={topic}
+              >
+                {topic}
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section class="detail-section validation-section" data-validation-status={repository.validation.overall}>
+          <div class="validation-heading">
+            <div>
+              <p class="mono-label">VALIDATION LADDER</p>
+              <h2 data-i18n="detail.validationProgress">验证进度</h2>
+            </div>
+            <span data-tone={repository.validation.tone}>
+              <CircleDot size={14} stroke-width={1.8} />
+              <span data-i18n={`validation.status.${repository.validation.overall}`}>{repository.validation.label}</span>
+            </span>
+          </div>
+          <div class="validation-ladder">
+            {VALIDATION_STAGE_DEFINITIONS.map((stage, index) => {
+              const evidence = repository.validation.stages[stage.id]
+              return (
+                <div class="validation-step" data-status={evidence.status}>
+                  <span class="validation-step__index">{String(index + 1).padStart(2, '0')}</span>
+                  <span class="validation-step__mark"><i></i></span>
+                  <span class="validation-step__copy">
+                    <strong data-i18n={`validation.stage.${stage.id}`}>{stage.label}</strong>
+                    <small data-i18n={`validation.step.${evidence.status}`}>{validationStageStatusLabels[evidence.status]}</small>
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+          {(repository.validation.sourceSha || repository.validation.dshVersion || repository.validation.platform || validationUpdatedAt) && (
+            <dl class="validation-evidence">
+              {repository.validation.sourceSha && <div><dt>Commit</dt><dd>{repository.validation.sourceSha.slice(0, 12)}</dd></div>}
+              {repository.validation.dshVersion && <div><dt>DSH</dt><dd>{repository.validation.dshVersion}</dd></div>}
+              {repository.validation.platform && <div><dt data-i18n="detail.platform">平台</dt><dd>{repository.validation.platform}</dd></div>}
+              {validationUpdatedAt && (
+                <div>
+                  <dt data-i18n="detail.validationTime">验证时间</dt>
+                  <dd data-i18n-date={repository.validation.updatedAt!} data-i18n-date-time>{validationUpdatedAt}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+          {repository.validation.reason && <p class="validation-reason" data-tone={repository.validation.tone}>{repository.validation.reason}</p>}
+          {(repository.validation.reportUrl || repository.validation.issueUrl) && (
+            <div class="validation-actions">
+              {repository.validation.reportUrl && (
+                <a class="outline-button" href={repository.validation.reportUrl} target="_blank" rel="noreferrer">
+                  <span data-i18n="detail.report">查看验证报告</span>
+                  <ExternalLink size={14} stroke-width={1.6} />
+                </a>
+              )}
+              {repository.validation.issueUrl && (
+                <a class="outline-button" href={repository.validation.issueUrl} target="_blank" rel="noreferrer">
+                  <span data-i18n="detail.issue">查看相关 Issue</span>
+                  <ExternalLink size={14} stroke-width={1.6} />
+                </a>
+              )}
+            </div>
+          )}
+        </section>
+
+        <section class="detail-section classification-section">
+          <p class="mono-label">CLASSIFICATION EVIDENCE</p>
+          <h2 data-i18n="detail.classification">/10类依据</h2>
+          <div class="classification-grid">
+            <div>
+              <span data-i18n="detail.projectType">项目类型</span>
+              <strong data-i18n={`projectType.${repository.projectType}`}>{getProjectTypeLabel(repository.projectType)}</strong>
+            </div>
+            <div>
+              <span data-i18n="detail.category">功能/10类</span>
+              <strong data-i18n={`category.${repository.category}`}>{category.label}</strong>
+            </div>
+            <div>
+              <span data-i18n="detail.confidence">规则置信度</span>
+              <strong data-i18n={`detail.confidence.${repository.classificationConfidence}`}>
+                {repository.classificationConfidence === 'high' ? 'High' : repository.classificationConfidence === 'medium' ? 'Medium' : 'Low'}
+              </strong>
+            </div>
+          </div>
+          <p class="classification-note">
+            <span data-i18n={classificationPrefixKey}>System reads GitHub Topics first, then compares against the in-site category dictionary and word-root rules. Current match:</span>
+            <span data-i18n-topic-list={JSON.stringify(classificationSignals)}>
+              {classificationSignals.length > 0 ? classificationSignals.join('、') : 'No valid category tags'}
+            </span>。
+          </p>
+        </section>
+
+
+      </div>
+
+      <aside class="repository-facts" aria-label="仓库信息" data-i18n-aria-label="detail.facts">
+        <p class="mono-label mono-label--accent">REPOSITORY FACTS</p>
+        <dl>
+          <div><dt data-i18n="detail.language">主要语言</dt><dd><span class="fact-chip">{repository.language ?? <span data-i18n="common.unknown">Unknown</span>}</span></dd></div>
+          <div>
+            <dt data-i18n="detail.license">许可证</dt>
+            <dd><Scale size={14} stroke-width={1.6} /> {repository.license ?? <span data-i18n="common.undeclared">未声明</span>}</dd>
+          </div>
+          <div><dt data-i18n="detail.lastPush">最后推送</dt><dd data-i18n-date={repository.pushedAt}>{absoluteDate}</dd></div>
+          <div>
+            <dt data-i18n="detail.archive">归档状态</dt>
+            <dd>
+              <span class:list={{ 'status-pill': true, 'status-pill--ok': !repository.archived, 'status-pill--warn': repository.archived }}>
+                {repository.archived ? 'Archived' : 'Active'}
+              </span>
+            </dd>
+          </div>
+          <div><dt data-i18n="detail.source">数据来源</dt><dd>GitHub Topic</dd></div>
+          <div>
+            <dt data-i18n="detail.validation">验证状态</dt>
+            <dd class:list={{ 'status-warning': !repository.validation.verified, 'status-verified': repository.validation.verified }}>
+              {repository.validation.reportUrl
+                ? (
+                  <a href={repository.validation.reportUrl} target="_blank" rel="noreferrer">
+                    <span data-i18n={`validation.status.${repository.validation.overall}`}>{repository.validation.label}</span>
+                    <ExternalLink size={12} stroke-width={1.6} />
+                  </a>
+                )
+                : <span data-i18n={`validation.status.${repository.validation.overall}`}>{repository.validation.label}</span>}
+            </dd>
+          </div>
+        </dl>
+        <p class="facts-note" data-i18n="detail.factsNote">只有绑定当前 commit 的完整实机结果显示为“已验证”；其他标识仅代表对应步骤的记录。</p>
+      </aside>
+    </div>
+  </section>
+
+  {related.length > 0 && (
+    <section class="related-section">
+      <div class="container">
+        <div class="related-heading">
+          <div><p class="mono-label">MORE IN CATEGORY</p><h2 data-i18n="detail.related">同类项目</h2></div>
+          <a class="outline-button" href={`${baseUrl}?category=${repository.category}`} data-i18n="detail.browseCategory">Browse category</a>
+        </div>
+        <div class="related-grid">
+          {related.map((item) => <ProjectCard repository={item} />)}
+        </div>
+      </div>
+    </section>
+  )}
+
+  <script>
+    import { resolveReadmeReference } from '../../lib/readme'
+
+    const t = (key: string, params: Record<string, string | number> = {}) => (
+      window.dshI18n?.t(key, params) ?? key
+    )
+
+    const catalogBackLink = document.querySelector<HTMLAnchorElement>('[data-catalog-back]')
+    if (catalogBackLink) {
+      const catalogFilterParamNames = ['q', 'category', 'type', 'validation', 'sort']
+      const currentParams = new URLSearchParams(window.location.search)
+      const catalogFilterParams = new URLSearchParams()
+      catalogFilterParamNames.forEach((param) => {
+        const value = currentParams.get(param)
+        if (value) catalogFilterParams.set(param, value)
+      })
+      const serializedCatalogFilters = catalogFilterParams.toString()
+      const catalogFilterSearch = serializedCatalogFilters ? `?${serializedCatalogFilters}` : ''
+      catalogBackLink.href = `${catalogBackLink.href}${catalogFilterSearch}`
+    }
+
+    const copyButton = document.getElementById('copy-command')
+    const installCommandElement = document.getElementById('install-command')
+    if (copyButton && installCommandElement) {
+      copyButton.addEventListener('click', async () => {
+        const command = installCommandElement.textContent ?? ''
+        await navigator.clipboard.writeText(command)
+        copyButton.classList.add('is-copied')
+        copyButton.setAttribute('aria-label', t('detail.copied'))
+        copyButton.setAttribute('title', t('detail.copied'))
+        window.setTimeout(() => {
+          copyButton.classList.remove('is-copied')
+          copyButton.setAttribute('aria-label', t('detail.copyInstall'))
+          copyButton.setAttribute('title', t('detail.copyInstall'))
+        }, 1600)
+      })
+    }
+
+    const readmeDisclosure = document.querySelector<HTMLDetailsElement>('#readme-disclosure')!
+    const readmeContent = document.querySelector<HTMLElement>('#readme-content')!
+    const readmeState = document.querySelector<HTMLElement>('#readme-state')!
+    const readmeBody = document.querySelector<HTMLElement>('#readme-body')!
+    const readmeError = document.querySelector<HTMLElement>('#readme-error')!
+    const readmeErrorMessage = document.querySelector<HTMLElement>('#readme-error-message')!
+    const retryReadme = document.getElementById('retry-readme')
+    let readmeLoaded = false
+    let readmeLoading = false
+
+    const setLocalizedText = (element: HTMLElement, key: string) => {
+      element.dataset.i18n = key
+      element.textContent = t(key)
+    }
+
+    const showReadmeError = (messageKey: string) => {
+      readmeState.hidden = true
+      readmeBody.hidden = true
+      setLocalizedText(readmeErrorMessage, messageKey)
+      readmeError.hidden = false
+    }
+
+    const loadReadme = async () => {
+      if (readmeLoaded || readmeLoading) return
+      readmeLoading = true
+      readmeContent.setAttribute('aria-busy', 'true')
+      readmeState.hidden = false
+      setLocalizedText(readmeState, 'detail.readmeLoading')
+      readmeBody.hidden = true
+      readmeError.hidden = true
+
+      try {
+        // 优先读本地缓存 README（无 API 调用、无限流）；无缓存才回退 GitHub API
+        const localApi = readmeDisclosure.dataset.readmeLocal!
+        let response: Response
+        if (localApi) {
+          response = await fetch(localApi)
+          if (!response.ok) throw new Error('detail.readmeFailed')
+        } else {
+          response = await fetch(readmeDisclosure.dataset.readmeApi!, {
+            headers: { Accept: 'application/vnd.github.html+json' },
+          })
+          if (response.status === 404 || response.status === 409) {
+            setLocalizedText(readmeState, 'detail.readmeMissing')
+            readmeLoaded = true
+            return
+          }
+          if (response.status === 403 || response.status === 429) {
+            throw new Error('detail.readmeRateLimit')
+          }
+          if (!response.ok) throw new Error('detail.readmeFailed')
+        }
+
+        const documentFragment = new DOMParser().parseFromString(await response.text(), 'text/html')
+        const wrapper = documentFragment.querySelector('#readme')
+        const article = wrapper?.querySelector('article.markdown-body')
+        if (!wrapper || !article) throw new Error('detail.readmeMalformed')
+
+        const location = {
+          fullName: readmeDisclosure.dataset.fullName!,
+          defaultBranch: readmeDisclosure.dataset.defaultBranch || 'main',
+          readmePath: wrapper.getAttribute('data-path') || 'README.md',
+        }
+        article.querySelectorAll('a[href]').forEach((link) => {
+          const href = link.getAttribute('href')
+          if (!href) return
+          link.setAttribute('href', resolveReadmeReference(href, location, 'link'))
+          if (!href.startsWith('#')) {
+            link.setAttribute('target', '_blank')
+            link.setAttribute('rel', 'noreferrer')
+          }
+        })
+        article.querySelectorAll('[src]').forEach((media) => {
+          const src = media.getAttribute('src')
+          if (src) media.setAttribute('src', resolveReadmeReference(src, location, 'media'))
+        })
+
+        readmeBody.replaceChildren(...Array.from(article.childNodes).map((node) => document.importNode(node, true)))
+        readmeState.hidden = true
+        readmeBody.hidden = false
+        readmeLoaded = true
+      } catch (error) {
+        const messageKey = error instanceof Error && error.message.startsWith('detail.')
+          ? error.message
+          : 'detail.readmeFailed'
+        showReadmeError(messageKey)
+      } finally {
+        readmeLoading = false
+        readmeContent.setAttribute('aria-busy', 'false')
+      }
+    }
+
+    readmeDisclosure?.addEventListener('toggle', () => {
+      if (readmeDisclosure.open) void loadReadme()
+    })
+    retryReadme?.addEventListener('click', () => void loadReadme())
+  </script>
+</BaseLayout>
+
+<style>
+  .detail-hero { border-bottom: 1px solid var(--hairline); }
+  .detail-hero .container { padding-block: 28px 56px; }
+  .back-link { display: inline-flex; align-items: center; gap: 8px; color: #fff; font-size: 14px; font-weight: 600; border: 1px solid var(--accent-strong); border-radius: 9999px; background: var(--accent-strong); padding: 8px 16px; transition: opacity 160ms ease, transform 160ms ease; }
+  .back-link:hover { opacity: 0.88; }
+  .detail-hero__grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.7fr); gap: 64px; align-items: start; padding-top: 56px; }
+  .detail-eyebrow, .detail-title, .detail-actions, .detail-metrics dt, .repository-facts dd, .install-heading > span { display: flex; align-items: center; }
+  .detail-eyebrow { gap: 9px; }
+  .detail-eyebrow > span:last-child { border-left: 1px solid var(--hairline); color: var(--mute); font-size: 12px; padding-left: 10px; }
+  .category-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--category-color); }
+  .detail-title { min-width: 0; gap: 18px; margin-top: 18px; }
+  .detail-title img { width: 56px; height: 56px; flex: 0 0 auto; border-radius: 50%; }
+  .detail-title > div { min-width: 0; }
+  h1, h2, .detail-title p, .detail-description, .install-section > p, .classification-note, .facts-note { margin: 0; }
+  h1 { overflow-wrap: anywhere; font-size: clamp(42px, 6vw, 72px); font-weight: 700; line-height: 1; letter-spacing: -0.02em; }
+  .detail-title p { margin-top: 8px; color: var(--mute); font-family: var(--font-mono); font-size: 13px; letter-spacing: 0; }
+  .detail-description { max-width: 760px; margin-top: 24px; color: var(--body); font-size: 18px; line-height: 30px; }
+  .detail-actions { flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .primary-button { display: inline-flex; min-height: 40px; align-items: center; gap: 8px; border: 1px solid var(--accent-strong); border-radius: 9999px; background: var(--accent-strong); color: #fff; font-size: 14px; padding: 8px 16px; transition: opacity 160ms ease, transform 160ms ease; }
+  .primary-button:hover { opacity: 0.88; }
+  .detail-visual { min-width: 0; display: grid; gap: 18px; }
+  .repo-og-frame { border: 1px solid var(--hairline); border-radius: 14px; overflow: hidden; background: var(--canvas-card); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03); }
+  .repo-og { display: block; width: 100%; aspect-ratio: 1200 / 630; object-fit: cover; }
+  .repo-og-fallback { min-height: 120px; align-items: center; justify-content: center; gap: 8px; color: var(--mute); font-family: var(--font-mono); font-size: 14px; }
+  .detail-metrics { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; border: 1px solid var(--hairline); border-radius: 14px; overflow: hidden; background: var(--canvas-card); }
+  .detail-metrics div { padding: 16px 14px; text-align: center; }
+  .detail-metrics div + div { border-left: 1px solid var(--hairline); }
+  .detail-metrics dt { gap: 6px; color: var(--mute); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0; text-transform: uppercase; justify-content: center; }
+  .detail-metrics dt svg { color: var(--accent-alt); }
+  .detail-metrics dd { margin: 7px 0 0; font-family: var(--font-mono); font-size: 20px; font-weight: 600; color: var(--ink); }
+  .detail-content { padding-block: 56px 64px; }
+  .detail-content__grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 64px; align-items: start; }
+  .detail-main { display: grid; min-width: 0; gap: 56px; }
+  .detail-section { min-width: 0; border-top: 1px solid var(--hairline); padding-top: 24px; }
+  .detail-section h2, .related-heading h2 { margin: 8px 0 24px; font-size: 28px; font-weight: 700; line-height: 36px; letter-spacing: -0.01em; }
+  .topic-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+  .topic-cloud a { display: inline-flex; min-height: 32px; align-items: center; border: 1px solid var(--outline); border-radius: 9999px; color: var(--body); font-family: var(--font-mono); font-size: 13px; letter-spacing: 0; padding-inline: 12px; transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease; }
+  .topic-cloud a:hover { border-color: var(--outline-strong); background: var(--canvas-soft); color: var(--ink); }
+  .readme-section { padding-top: 0; }
+  .readme-disclosure { border-block-end: 1px solid var(--hairline); }
+  .readme-disclosure summary { display: flex; min-height: 88px; align-items: center; justify-content: space-between; gap: 24px; cursor: pointer; list-style: none; padding-block: 18px; }
+  .readme-disclosure summary::-webkit-details-marker { display: none; }
+  .readme-heading { display: grid; gap: 6px; }
+  .readme-title { display: flex; align-items: center; gap: 9px; font-size: 28px; font-weight: 700; line-height: 36px; letter-spacing: -0.01em; }
+  .readme-title svg { color: var(--mute); }
+  .readme-toggle { display: inline-flex; min-width: 74px; min-height: 36px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--accent-strong); border-radius: 9999px; color: var(--accent-strong); font-size: 12px; font-weight: 600; padding-inline: 12px; background: var(--accent-soft); }
+  .readme-toggle svg { transition: transform 160ms ease; color: var(--accent-strong); }
+  .readme-toggle__open { display: none; }
+  .readme-disclosure[open] .readme-toggle__closed { display: none; }
+  .readme-disclosure[open] .readme-toggle__open { display: inline; }
+  .readme-disclosure[open] .readme-toggle svg { transform: rotate(180deg); }
+  .readme-content { min-width: 0; overflow: hidden; border-top: 1px solid var(--hairline); padding-block: 28px 40px; }
+  .readme-state, .readme-error p { margin: 0; color: var(--mute); font-size: 14px; }
+  .readme-error { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .readme-error[hidden] { display: none; }
+  .readme-error p { width: 100%; }
+  :global(.readme-content .markdown-body) { min-width: 0; color: var(--body); font-size: 15px; font-weight: 500; line-height: 1.7; overflow-wrap: anywhere; }
+  :global(.readme-content .markdown-body > :first-child) { margin-top: 0; }
+  :global(.readme-content .markdown-body > :last-child) { margin-bottom: 0; }
+  :global(.readme-content .markdown-body h1),
+  :global(.readme-content .markdown-body h2),
+  :global(.readme-content .markdown-body h3),
+  :global(.readme-content .markdown-body h4) { margin: 32px 0 14px; color: var(--ink); font-weight: 500; line-height: 1.3; }
+  :global(.readme-content .markdown-body h1) { border-bottom: 1px solid var(--hairline); font-size: 30px; padding-bottom: 12px; }
+  :global(.readme-content .markdown-body h2) { border-bottom: 1px solid var(--hairline); font-size: 24px; padding-bottom: 10px; }
+  :global(.readme-content .markdown-body h3) { font-size: 20px; }
+  :global(.readme-content .markdown-body h4) { font-size: 17px; }
+  :global(.readme-content .markdown-body p),
+  :global(.readme-content .markdown-body ul),
+  :global(.readme-content .markdown-body ol),
+  :global(.readme-content .markdown-body blockquote),
+  :global(.readme-content .markdown-body pre),
+  :global(.readme-content .markdown-body table),
+  :global(.readme-content .markdown-body details) { margin: 0 0 18px; }
+  :global(.readme-content .markdown-body ul),
+  :global(.readme-content .markdown-body ol) { padding-left: 28px; }
+  :global(.readme-content .markdown-body li + li) { margin-top: 5px; }
+  :global(.readme-content .markdown-body a) { color: var(--ink); text-decoration: underline; text-decoration-color: var(--outline-strong); text-underline-offset: 3px; }
+  :global(.readme-content .markdown-body a:hover) { text-decoration-color: currentColor; }
+  :global(.readme-content .markdown-body .anchor) { display: none; }
+  :global(.readme-content .markdown-body blockquote) { border-left: 3px solid var(--outline-strong); color: var(--mute); padding-left: 16px; }
+  :global(.readme-content .markdown-body code) { border-radius: 4px; background: var(--canvas-soft); color: var(--body); font-family: var(--font-mono); font-size: 0.88em; padding: 2px 5px; }
+  :global(.readme-content .markdown-body pre) { max-width: 100%; overflow-x: auto; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--canvas-soft); padding: 16px; }
+  :global(.readme-content .markdown-body pre code) { background: transparent; padding: 0; }
+  :global(.readme-content .markdown-body markdown-accessiblity-table) { display: block; max-width: 100%; overflow-x: auto; }
+  :global(.readme-content .markdown-body table) { width: 100%; border-collapse: collapse; }
+  :global(.readme-content .markdown-body th),
+  :global(.readme-content .markdown-body td) { border: 1px solid var(--hairline); padding: 8px 10px; text-align: left; }
+  :global(.readme-content .markdown-body th) { background: var(--canvas-soft); color: var(--ink); font-weight: 500; }
+  :global(.readme-content .markdown-body img),
+  :global(.readme-content .markdown-body video) { height: auto; max-width: 100%; }
+  :global(.readme-content .markdown-body hr) { height: 1px; margin: 28px 0; border: 0; background: var(--hairline); }
+  :global(.readme-content .markdown-body details) { border: 1px solid var(--hairline); border-radius: var(--radius); padding: 12px 14px; }
+  :global(.readme-content .markdown-body summary) { cursor: pointer; }
+  .classification-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid var(--hairline); }
+  .classification-grid div { display: grid; gap: 6px; padding: 16px; }
+  .classification-grid div + div { border-left: 1px solid var(--hairline); }
+  .classification-grid span { color: var(--mute); font-size: 12px; }
+  .classification-grid strong { font-size: 15px; font-weight: 400; }
+  .classification-note { margin-top: 18px; color: var(--mute); font-size: 13px; line-height: 22px; }
+  .validation-heading, .validation-heading > span, .validation-step, .validation-step__copy, .validation-actions { display: flex; }
+  .validation-heading { align-items: flex-start; justify-content: space-between; gap: 24px; }
+  .validation-heading > span { min-height: 28px; align-items: center; gap: 6px; border: 1px solid var(--hairline); border-radius: 9999px; color: var(--mute); font-size: 11px; padding-inline: 10px; white-space: nowrap; }
+  .validation-heading > span[data-tone='neutral'] { border-color: rgba(167, 139, 250, 0.45); color: #a78bfa; background: rgba(167, 139, 250, 0.08); }
+  .validation-heading > span[data-tone='success'] { border-color: rgba(159, 221, 169, 0.35); color: #9fdda9; }
+  .validation-heading > span[data-tone='danger'] { border-color: rgba(255, 156, 140, 0.35); color: #ff9c8c; }
+  .validation-heading > span[data-tone='warning'] { border-color: rgba(255, 194, 133, 0.35); color: #ffc285; }
+  .validation-heading > span[data-tone='running'] { border-color: rgba(143, 199, 255, 0.35); color: #8fc7ff; }
+  .validation-heading > span[data-tone='info'] { border-color: rgba(183, 182, 255, 0.35); color: #b7b6ff; }
+  .validation-ladder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 20px; border-block: 1px solid var(--hairline); }
+  .validation-step { min-width: 0; align-items: center; gap: 10px; padding: 16px 12px; }
+  .validation-step + .validation-step { border-left: 1px solid var(--hairline); }
+  .validation-step__index { color: var(--mute); font-family: var(--font-mono); font-size: 10px; }
+  .validation-step__mark { display: grid; width: 10px; height: 10px; flex: 0 0 auto; place-items: center; border: 1px solid var(--outline); border-radius: 50%; }
+  .validation-step__mark i { width: 4px; height: 4px; border-radius: 50%; background: var(--mute); }
+  .validation-step__copy { min-width: 0; flex-direction: column; gap: 2px; }
+  .validation-step__copy strong { overflow: hidden; font-size: 12px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+  .validation-step__copy small { color: var(--mute); font-size: 10px; }
+  .validation-step[data-status='passed'] .validation-step__mark { border-color: #6fa87d; }
+  .validation-step[data-status='passed'] .validation-step__mark i { background: #9fdda9; }
+  .validation-step[data-status='running'] .validation-step__mark { border-color: #6fa9d8; }
+  .validation-step[data-status='running'] .validation-step__mark i { background: #8fc7ff; }
+  .validation-step[data-status='failed'] .validation-step__mark { border-color: #d9786c; }
+  .validation-step[data-status='failed'] .validation-step__mark i { background: #ff9c8c; }
+  .validation-step[data-status='inconclusive'] .validation-step__mark { border-color: #c49358; }
+  .validation-step[data-status='inconclusive'] .validation-step__mark i { background: #ffc285; }
+  .validation-step[data-status='quarantined'] .validation-step__mark { border-color: #d4a85f; }
+  .validation-step[data-status='quarantined'] .validation-step__mark i { background: #ffd58f; }
+  .validation-step[data-status='skipped'] { opacity: 0.45; }
+  .validation-evidence { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 16px 0 0; }
+  .validation-evidence div { min-width: 0; border-left: 1px solid var(--hairline); padding-left: 12px; }
+  .validation-evidence dt { color: var(--mute); font-size: 10px; }
+  .validation-evidence dd { margin: 4px 0 0; overflow: hidden; font-family: var(--font-mono); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+  .validation-reason { margin: 16px 0 0; border-left: 2px solid #d9786c; color: var(--body); font-size: 12px; line-height: 20px; padding-left: 12px; }
+  .validation-reason[data-tone='warning'] { border-left-color: #c49358; }
+  .validation-actions { gap: 8px; margin-top: 16px; }
+  .validation-actions .outline-button { min-height: 36px; }
+  .install-heading { display: flex; justify-content: space-between; gap: 24px; align-items: center; }
+  .install-heading h2 { margin-bottom: 16px; }
+  .install-heading > span { gap: 6px; border: 1px solid rgba(255, 194, 133, 0.35); border-radius: 9999px; color: #ffc285; font-size: 11px; padding: 5px 10px; }
+  .install-heading > span[data-tone='success'] { border-color: rgba(159, 221, 169, 0.35); color: #9fdda9; }
+  .install-heading > span[data-tone='danger'] { border-color: rgba(255, 156, 140, 0.35); color: #ff9c8c; }
+  .install-heading > span[data-tone='running'] { border-color: rgba(143, 199, 255, 0.35); color: #8fc7ff; }
+  .install-heading > span[data-tone='info'] { border-color: rgba(183, 182, 255, 0.35); color: #b7b6ff; }
+  .command-row { display: flex; width: 100%; min-width: 0; align-items: center; gap: 12px; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--canvas-soft); padding: 10px 10px 10px 16px; }
+  .command-row code { min-width: 0; flex: 1; overflow-x: auto; color: var(--body); font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+  .install-actions { display: flex; margin-top: 12px; }
+  .install-dsh-button { min-height: 40px; }
+  .check-icon, .is-copied .copy-icon { display: none; }
+  .is-copied .check-icon { display: block; }
+  .install-section > p { margin-top: 12px; color: var(--mute); font-size: 12px; line-height: 20px; }
+  .repository-facts { position: sticky; top: 92px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--canvas-card); padding: 24px; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03); }
+  .repository-facts .mono-label--accent { color: var(--accent-alt); font-weight: 700; letter-spacing: 0.08em; }
+  .repository-facts dl { margin: 16px 0 0; }
+  .repository-facts dl div { display: flex; justify-content: space-between; align-items: center; gap: 16px; border-top: 1px solid var(--hairline); padding-block: 13px; }
+  .repository-facts dt, .repository-facts dd { font-size: 12.5px; }
+  .repository-facts dt { color: var(--mute); }
+  .repository-facts dd { gap: 6px; margin: 0; text-align: right; font-weight: 500; }
+  .fact-chip { display: inline-flex; align-items: center; border: 1px solid var(--accent-soft); border-radius: 9999px; background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; padding: 2px 10px; font-size: 12px; }
+  .status-pill { display: inline-flex; align-items: center; border-radius: 9999px; padding: 2px 10px; font-size: 11.5px; font-weight: 600; }
+  .status-pill--ok { border: 1px solid rgba(159, 221, 169, 0.35); color: #9fdda9; background: rgba(159, 221, 169, 0.08); }
+  .status-pill--warn { border: 1px solid rgba(255, 194, 133, 0.35); color: #ffc285; background: rgba(255, 194, 133, 0.08); }
+  .repository-facts .status-warning { color: #ffc285; }
+  .repository-facts .status-verified, .repository-facts .status-verified a { color: #9fdda9; }
+  .repository-facts .status-verified a { display: inline-flex; align-items: center; gap: 5px; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; }
+  .repository-facts .status-verified a:hover { text-decoration-color: currentColor; }
+  .facts-note { margin-top: 12px; color: var(--mute); font-size: 11px; line-height: 18px; }
+  .related-section { border-top: 1px solid var(--hairline); padding-block: 56px 64px; }
+  .related-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+  .related-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+
+  @media (max-width: 1023px) {
+    .detail-hero__grid, .detail-content__grid { grid-template-columns: 1fr; gap: 40px; }
+    .repository-facts { position: static; }
+    .related-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 767px) {
+    .detail-hero .container { padding-block: 20px 40px; }
+    .detail-hero__grid { gap: 32px; padding-top: 36px; }
+    .detail-title { align-items: flex-start; }
+    h1 { font-size: 42px; line-height: 46px; }
+    .detail-description { font-size: 16px; line-height: 26px; }
+    .primary-button, .detail-actions .outline-button { min-height: 44px; }
+    .detail-content { padding-block: 40px 48px; }
+    .detail-main { gap: 40px; }
+    .classification-grid { grid-template-columns: 1fr; }
+    .classification-grid div + div { border-top: 1px solid var(--hairline); border-left: 0; }
+    .topic-cloud a { min-height: 44px; }
+    .validation-heading { align-items: flex-start; }
+    .validation-ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .validation-step:nth-child(3) { border-left: 0; border-top: 1px solid var(--hairline); }
+    .validation-step:nth-child(4) { border-top: 1px solid var(--hairline); }
+    .validation-evidence { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 14px; }
+    .validation-actions { flex-direction: column; align-items: stretch; }
+    .readme-disclosure summary { min-height: 84px; }
+    .readme-toggle { min-width: 76px; min-height: 44px; }
+    .readme-content { padding-block: 24px 32px; }
+    :global(.readme-content .markdown-body h1) { font-size: 26px; }
+    :global(.readme-content .markdown-body h2) { font-size: 22px; }
+    .install-heading { align-items: flex-start; }
+    .related-grid { grid-template-columns: 1fr; }
+  }
+
+  /* 评测成绩单 */
+                              .review-dim { display: grid; grid-template-columns: 110px 1fr 44px; align-items: center; gap: 12px; }
+  .review-dim__label { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .review-dim__bar {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    overflow: hidden;
+  }
+  .review-dim__bar i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  .review-dim__val { font-size: 13px; font-weight: 700; color: var(--ink); text-align: right; font-family: var(--font-mono); }
+        @media (max-width: 640px) {
+                .review-dim { grid-template-columns: 92px 1fr 40px; }
+  }
+</style>

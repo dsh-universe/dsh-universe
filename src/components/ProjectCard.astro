@@ -1,0 +1,380 @@
+---
+import { ArrowUpRight, CircleDot, GitFork, Star } from '@lucide/astro'
+
+import type { CatalogEntry } from '../lib/catalog'
+import { formatCompactNumber, formatRelativeDate } from '../lib/catalog'
+import { getCategory, getProjectTypeLabel } from '../lib/classification'
+import { dictionaries } from '../lib/i18n'
+
+interface Props {
+  repository: CatalogEntry
+}
+
+const { repository } = Astro.props
+const category = getCategory(repository.category)
+const baseUrl = `${import.meta.env.BASE_URL.replace(/\/+$/, '')}/`
+const detailUrl = `${baseUrl}plugins/${repository.slug}`
+const searchable = [
+  repository.name,
+  repository.fullName,
+  repository.description,
+  repository.language ?? '',
+  ...repository.topics,
+].join(' ').toLocaleLowerCase('zh-CN')
+
+// 星级：50K+ = 5星 / 10K-50K = 4星 / 5K-10K = 3星 / 1K-5K = 2星 / 500-1K = 1星 / <500 = 0星
+function starLevel(stars: number): number {
+  if (stars >= 50_000) return 5
+  if (stars >= 10_000) return 4
+  if (stars >= 5_000) return 3
+  if (stars >= 1_000) return 2
+  if (stars >= 500) return 1
+  return 0
+}
+const level = starLevel(repository.stars)
+const starsFull = level
+const starsEmpty = 5 - level
+---
+
+<article
+  class="project-card"
+  data-project-card
+  data-search={searchable}
+  data-category={repository.category}
+  data-type={repository.projectType}
+  data-validation-status={repository.validation.overall}
+  data-stars={repository.stars}
+  data-updated={repository.pushedAt}
+>
+  <div class="project-card__topline">
+    <span class="category-dot" data-field="category-dot" style={`--category-color: ${category.color}`}></span>
+    <span class="mono-label" data-field="category" data-i18n={`category.${repository.category}`}>{category.label}</span>
+    <span class="project-card__type" data-field="project-type" data-i18n={`projectType.${repository.projectType}`}>{getProjectTypeLabel(repository.projectType)}</span>
+  </div>
+
+  <div class="project-card__identity">
+    <img
+      src={repository.owner.avatarUrl}
+      data-field="avatar"
+      width="40"
+      height="40"
+      alt=""
+      loading="lazy"
+      decoding="async"
+    />
+    <div>
+      <h2><a data-field="detail-link" href={detailUrl}>{repository.name}</a></h2>
+      <p data-field="owner">{repository.owner.login}</p>
+    </div>
+  </div>
+
+  <p class="project-card__description" data-field="description">{repository.description}</p>
+
+  <div
+    class="project-card__validation"
+    data-field="validation"
+    data-tone={repository.validation.tone}
+    data-i18n-validation-title={repository.validation.overall}
+    title={`Verification: ${(dictionaries.en[`validation.status.${repository.validation.overall}`] as string | undefined) ?? repository.validation.label}`}
+  >
+    <span class="project-card__validation-label">
+      <CircleDot size={13} stroke-width={1.8} />
+      <span
+        data-field="validation-label"
+        data-i18n={`validation.status.${repository.validation.overall}`}
+      >{repository.validation.label}</span>
+    </span>
+    <span class="project-card__validation-steps" aria-hidden="true">
+      {Object.entries(repository.validation.stages).map(([stage, evidence]) => (
+        <i data-validation-step={stage} data-status={evidence.status}></i>
+      ))}
+    </span>
+  </div>
+
+  <div class="project-card__topics" data-field="topics" aria-label="项目标签" data-i18n-aria-label="card.topics">
+    {repository.topics.slice(0, 4).map((topic) => <span>{topic}</span>)}
+  </div>
+
+  <div class="project-card__footer">
+    <div class="project-card__metrics" aria-label="仓库数据" data-i18n-aria-label="card.metrics">
+      <span title="Stars" data-i18n-title="card.stars">
+        <span class="project-card__stars" aria-hidden="true">
+          {level > 0 && (
+            <>
+              {Array.from({ length: starsFull }).map(() => (
+                <Star size={13} class="project-card__star is-filled" stroke-width={1.4} />
+              ))}
+              {Array.from({ length: starsEmpty }).map(() => (
+                <Star size={13} class="project-card__star is-empty" stroke-width={1.4} />
+              ))}
+            </>
+          )}
+        </span>
+        <span data-field="stars">{formatCompactNumber(repository.stars)}</span>
+      </span>
+      <span title="Forks" data-i18n-title="card.forks"><GitFork size={14} stroke-width={1.6} /> <span data-field="forks">{formatCompactNumber(repository.forks)}</span></span>
+      <span title="Open issues" data-i18n-title="card.issues"><CircleDot size={14} stroke-width={1.6} /> <span data-field="issues">{formatCompactNumber(repository.openIssues)}</span></span>
+    </div>
+    <span
+      class="project-card__updated"
+      data-field="updated"
+      data-i18n-relative-date={repository.pushedAt}
+    >{formatRelativeDate(repository.pushedAt)}</span>
+  </div>
+
+  <a
+    class="project-card__open"
+    data-field="open-link"
+    href={detailUrl}
+    aria-label={`View ${repository.name} 详情`}
+    data-i18n-aria-label="card.openDetails"
+    data-i18n-param-name={repository.name}
+  >
+    <ArrowUpRight size={18} stroke-width={1.6} />
+  </a>
+</article>
+
+<style>
+  .project-card {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 330px;
+    flex-direction: column;
+    gap: 20px;
+    overflow: hidden;
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    background: var(--canvas-soft);
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
+  }
+
+  .project-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    background: var(--canvas-soft);
+    box-shadow: 0 0 0 1px var(--accent), var(--shadow-card-hover);
+  }
+
+  .project-card__topline,
+  .project-card__identity,
+  .project-card__validation,
+  .project-card__validation-label,
+  .project-card__validation-steps,
+  .project-card__footer,
+  .project-card__metrics,
+  .project-card__metrics span {
+    display: flex;
+    align-items: center;
+  }
+
+  .project-card__topline {
+    gap: 8px;
+    padding-right: 36px;
+  }
+
+  .category-dot {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--category-color);
+  }
+
+  .project-card__type {
+    margin-left: auto;
+    color: var(--mute);
+    font-size: 12px;
+  }
+
+  .project-card__identity {
+    min-width: 0;
+    gap: 12px;
+  }
+
+  .project-card__identity img {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--canvas-soft);
+  }
+
+  .project-card__identity div {
+    min-width: 0;
+  }
+
+  h2,
+  .project-card__identity p,
+  .project-card__description {
+    margin: 0;
+  }
+
+  h2 {
+    overflow: hidden;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+    letter-spacing: var(--tracking-card);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  h2 a::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+  }
+
+  .project-card__identity p {
+    overflow: hidden;
+    color: var(--mute);
+    font-size: 13px;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .project-card__description {
+    display: -webkit-box;
+    min-height: 72px;
+    overflow: hidden;
+    color: var(--body);
+    font-size: 14px;
+    line-height: 24px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .project-card__topics {
+    display: flex;
+    gap: 6px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .project-card__validation {
+    position: relative;
+    z-index: 2;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 24px;
+    color: var(--mute);
+    font-size: 11px;
+  }
+
+  .project-card__validation-label {
+    min-width: 0;
+    gap: 6px;
+  }
+
+  .project-card__validation-label span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .project-card__validation[data-tone='success'] { color: #9fdda9; }
+  .project-card__validation[data-tone='danger'] { color: #ff9c8c; }
+  .project-card__validation[data-tone='warning'] { color: #ffc285; }
+  .project-card__validation[data-tone='running'] { color: #8fc7ff; }
+  .project-card__validation[data-tone='info'] { color: #b7b6ff; }
+
+  .project-card__validation-steps {
+    gap: 4px;
+  }
+
+  .project-card__validation-steps i {
+    width: 18px;
+    height: 3px;
+    border-radius: 9999px;
+    background: var(--hairline);
+  }
+
+  .project-card__validation-steps i[data-status='passed'] { background: var(--accent); }
+  .project-card__validation-steps i[data-status='running'] { background: #6fa9d8; }
+  .project-card__validation-steps i[data-status='failed'] { background: #d9786c; }
+  .project-card__validation-steps i[data-status='inconclusive'] { background: #c49358; }
+  .project-card__validation-steps i[data-status='quarantined'] { background: #d4a85f; }
+  .project-card__validation-steps i[data-status='skipped'] { opacity: 0.35; }
+
+  .project-card__topics span {
+    overflow: hidden;
+    border: 1px solid var(--hairline);
+    border-radius: 9999px;
+    color: var(--mute);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0;
+    line-height: 22px;
+    padding-inline: 9px;
+    text-overflow: ellipsis;
+  }
+
+  .project-card__footer {
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: auto;
+    border-top: 1px solid var(--hairline);
+    padding-top: 16px;
+    color: var(--mute);
+    font-size: 12px;
+  }
+
+  .project-card__metrics {
+    gap: 12px;
+  }
+
+  .project-card__metrics > span {
+    gap: 5px;
+  }
+
+  .project-card__stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    color: var(--accent);
+  }
+
+  .project-card__star.is-filled {
+    fill: currentColor;
+  }
+
+  .project-card__star.is-empty {
+    fill: transparent;
+    opacity: 0.35;
+  }
+
+  .project-card__updated {
+    white-space: nowrap;
+  }
+
+  .project-card__open {
+    position: absolute;
+    z-index: 2;
+    top: 20px;
+    right: 20px;
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--hairline);
+    border-radius: 50%;
+    color: var(--body);
+  }
+
+  .project-card__open:hover {
+    border-color: var(--outline-strong);
+    color: var(--ink);
+  }
+
+  @media (max-width: 767px) {
+    .project-card {
+      min-height: 310px;
+      padding: 20px;
+    }
+  }
+</style>

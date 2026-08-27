@@ -1,0 +1,1044 @@
+---
+import { ArrowUpRight, ChevronDown, Puzzle, Search, SlidersHorizontal, Sparkles } from '@lucide/astro'
+
+import HeroCarousel from '../components/HeroCarousel.astro'
+import TypeGate from '../components/TypeGate.astro'
+import TrendChart from '../components/TrendChart.astro'
+import ProjectCard from '../components/ProjectCard.astro'
+import BaseLayout from '../layouts/BaseLayout.astro'
+import { sortCatalogEntries, type Catalog } from '../lib/catalog'
+import { catalogData } from '../lib/catalog-data'
+import { CATEGORIES, PROJECT_TYPES } from '../lib/classification'
+import { dictionaries } from '../lib/i18n'
+// 服务端渲染用英文(默认语言):分类/状态下拉直接输出英文
+const L = (key: string, fallback: string) => (dictionaries.en[key] as string | undefined) ?? fallback
+import { buildHomepageStructuredData } from '../lib/seo'
+import { VALIDATION_STATUS_DEFINITIONS } from '../lib/validation'
+
+const catalog = catalogData as Catalog
+const initialRepositories = sortCatalogEntries(catalog.repositories, 'recommended', catalog.generatedAt).slice(0, 24)
+const serializedCatalog = JSON.stringify(catalog.repositories).replace(/</g, '\\u003c')
+const serializedCategories = JSON.stringify(CATEGORIES).replace(/</g, '\\u003c')
+const serializedTypes = JSON.stringify(PROJECT_TYPES).replace(/</g, '\\u003c')
+const serializedValidationStatuses = JSON.stringify(VALIDATION_STATUS_DEFINITIONS).replace(/</g, '\\u003c')
+const baseUrl = `${import.meta.env.BASE_URL.replace(/\/+$/, '')}/`
+const homepageStructuredData = buildHomepageStructuredData(catalog.stats.fetched)
+---
+
+<BaseLayout structuredData={homepageStructuredData}>
+  <div class="container">
+    <HeroCarousel />
+  </div>
+
+    <TypeGate />
+
+
+  
+
+  <section id="catalog-tools" class="catalog-tools" aria-label="目录筛选" data-i18n-aria-label="home.filters">
+    <div class="container">
+      <div class="search-row">
+        <label class="search-field">
+          <span class="visually-hidden" data-i18n="home.search">搜索项目</span>
+          <Search size={19} stroke-width={1.6} />
+          <input
+            id="catalog-search"
+            type="search"
+            placeholder="Search name, owner, description, or topic"
+            data-i18n-placeholder="home.searchPlaceholder"
+            autocomplete="off"
+          />
+        </label>
+
+        <label class="select-field">
+          <SlidersHorizontal size={16} stroke-width={1.6} />
+          <span class="select-value" id="type-filter-value">All types</span>
+          <select id="type-filter" aria-label="项目类型" data-i18n-aria-label="home.projectType">
+            <option value="all" data-i18n="home.allTypes">All types</option>
+            {PROJECT_TYPES.map((type) => (
+              <option
+                value={type.id}
+                data-i18n-option={`projectType.${type.id}`}
+                data-count={catalog.stats.projectTypes[type.id] ?? 0}
+              >{L("projectType." + type.id, type.label)} · {catalog.stats.projectTypes[type.id] ?? 0}</option>
+            ))}
+          </select>
+          <ChevronDown size={15} stroke-width={1.6} />
+        </label>
+
+        <label class="select-field">
+          <span class="select-value" id="validation-filter-value">All validation states</span>
+          <select id="validation-filter" aria-label="验证状态" data-i18n-aria-label="home.validation">
+            <option value="all" data-i18n="home.allValidation">All validation states</option>
+            {VALIDATION_STATUS_DEFINITIONS.map((status) => (
+              <option
+                value={status.id}
+                data-i18n-option={`validation.status.${status.id}`}
+                data-count={catalog.stats.validationStatuses[status.id] ?? 0}
+              >{L("validation.status." + status.id, status.label)} · {catalog.stats.validationStatuses[status.id] ?? 0}</option>
+            ))}
+          </select>
+          <ChevronDown size={15} stroke-width={1.6} />
+        </label>
+
+        <label class="select-field">
+          <span class="select-value" id="sort-filter-value">Recommended</span>
+          <select id="sort-filter" aria-label="Sort方式" data-i18n-aria-label="home.sort">
+            <option value="recommended" data-i18n="sort.recommended">Recommended</option>
+            <option value="stars" data-i18n="sort.stars">最多 Star</option>
+            <option value="updated" data-i18n="sort.updated">最近更新</option>
+            <option value="name" data-i18n="sort.name">名称Sort</option>
+          </select>
+          <ChevronDown size={15} stroke-width={1.6} />
+        </label>
+      </div>
+
+      <div class="category-filter-panel" data-category-filter-panel>
+        <div class="category-row" id="category-filter" aria-label="功能/10类" data-i18n-aria-label="home.category">
+          <button class="category-filter is-active" type="button" data-category="all">
+            <span class="category-filter__label" data-i18n="home.all">All</span>
+            <span class="category-filter__count">{catalog.stats.fetched}</span>
+          </button>
+          <button class="category-filter category-filter--verified" type="button" data-category="verified">
+            <i></i>
+            <span class="category-filter__label" data-i18n="home.currentVerified">当前已验证</span>
+            <span class="category-filter__count">{catalog.stats.validationStatuses.verified ?? 0}</span>
+          </button>
+          {CATEGORIES.map((category) => (
+            <button class="category-filter" type="button" data-category={category.id}>
+              <i style={`--category-color: ${category.color}`}></i>
+              <span class="category-filter__label" data-i18n={`category.${category.id}`}>{L(`category.${category.id}`, category.label)}</span>
+              <span class="category-filter__count">{catalog.stats.categories[category.id] ?? 0}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          id="category-filter-toggle"
+          class="category-filter-toggle"
+          type="button"
+          aria-controls="category-filter"
+          aria-expanded="false"
+          aria-label="Expand all categories"
+          title="Expand all categories"
+          data-i18n-aria-label="home.expandCategories"
+          data-i18n-title="home.expandCategories"
+        >
+          <ChevronDown size={17} stroke-width={1.8} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="catalog-results">
+    <div class="container">
+      <div class="results-head">
+        <p id="result-count">{catalog.stats.fetched} projects</p>
+        <p><i></i> <span data-i18n="home.synced">标识随目录同步刷新</span></p>
+      </div>
+
+      <div class="project-grid" id="project-grid">
+        {initialRepositories.map((repository) => <ProjectCard repository={repository} />)}
+      </div>
+
+      <div class="empty-state" id="empty-state" hidden>
+        <p class="mono-label">NO MATCHES</p>
+        <h2 data-i18n="home.emptyTitle">没有找到匹配项目</h2>
+        <p data-i18n="home.emptyBody">当前筛选items件下没有结果。</p>
+        <button class="outline-button" id="clear-filters" type="button" data-i18n="home.clearFilters">清除筛选</button>
+      </div>
+
+      <div class="load-row">
+        <button class="outline-button" id="load-more" type="button">
+          <span data-i18n="home.loadMore">加载更多</span>
+          <span id="remaining-count">{Math.max(0, catalog.stats.fetched - initialRepositories.length)}</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 最新手记轻量横条（列表尾部） -->
+
+  <script id="catalog-data" type="application/json" set:html={serializedCatalog} is:inline></script>
+  <script id="catalog-generated-at" type="application/json" set:html={JSON.stringify(catalog.generatedAt)} is:inline></script>
+  <script id="category-data" type="application/json" set:html={serializedCategories} is:inline></script>
+  <script id="type-data" type="application/json" set:html={serializedTypes} is:inline></script>
+  <script id="validation-status-data" type="application/json" set:html={serializedValidationStatuses} is:inline></script>
+  <script id="base-url" type="application/json" set:html={JSON.stringify(baseUrl)} is:inline></script>
+
+  <script>
+
+    const translate = (key: string) => window.dshI18n?.t(key) ?? key
+
+  </script>
+
+  <script is:inline>
+    const repositories = JSON.parse(document.getElementById('catalog-data').textContent)
+    const recommendationSeed = JSON.parse(document.getElementById('catalog-generated-at').textContent)
+    const categories = JSON.parse(document.getElementById('category-data').textContent)
+    const projectTypes = JSON.parse(document.getElementById('type-data').textContent)
+    const validationStatuses = JSON.parse(document.getElementById('validation-status-data').textContent)
+    const baseUrl = JSON.parse(document.getElementById('base-url').textContent)
+    const categoryById = new Map(categories.map((category) => [category.id, category]))
+    const typeById = new Map(projectTypes.map((type) => [type.id, type]))
+    const grid = document.getElementById('project-grid')
+    const sourceCard = grid.querySelector('[data-project-card]').cloneNode(true)
+    const searchInput = document.getElementById('catalog-search')
+    const typeFilter = document.getElementById('type-filter')
+    const validationFilter = document.getElementById('validation-filter')
+    const sortFilter = document.getElementById('sort-filter')
+    const typeFilterValue = document.getElementById('type-filter-value')
+    const validationFilterValue = document.getElementById('validation-filter-value')
+    const sortFilterValue = document.getElementById('sort-filter-value')
+    const categoryFilter = document.getElementById('category-filter')
+    const categoryFilterPanel = document.querySelector('[data-category-filter-panel]')
+    const categoryFilterToggle = document.getElementById('category-filter-toggle')
+    const resultCount = document.getElementById('result-count')
+    const loadMore = document.getElementById('load-more')
+    const remainingCount = document.getElementById('remaining-count')
+    const emptyState = document.getElementById('empty-state')
+    const clearFilters = document.getElementById('clear-filters')
+    const pageSize = 24
+    const catalogFilterParamNames = ['q', 'category', 'type', 'validation', 'sort']
+    const validationStatusIds = new Set(validationStatuses.map((status) => status.id))
+    const sortIds = new Set(Array.from(sortFilter.options, (option) => option.value))
+    let selectedCategory = 'all'
+    let visibleCount = pageSize
+
+    const t = (key, params = {}, fallback = key) => window.dshI18n?.t(key, params) ?? fallback
+
+    const createSeededRandom = (seed) => {
+      let state = 2166136261
+      for (let index = 0; index < seed.length; index += 1) {
+        state = Math.imul(state ^ seed.charCodeAt(index), 16777619)
+      }
+      return () => {
+        state = (Math.imul(state, 1664525) + 1013904223) >>> 0
+        return state / 4294967296
+      }
+    }
+
+    const mixRecommendedRepositories = (priority, discovery, random) => {
+      const mixed = []
+      let priorityIndex = 0
+      let discoveryIndex = 0
+
+      while (priorityIndex < priority.length || discoveryIndex < discovery.length) {
+        const priorityCount = Math.min(2, priority.length - priorityIndex)
+        const hasDiscovery = discoveryIndex < discovery.length
+        if (!hasDiscovery) {
+          mixed.push(...priority.slice(priorityIndex, priorityIndex + priorityCount))
+          priorityIndex += priorityCount
+          continue
+        }
+
+        const discoveryPosition = Math.floor(random() * (priorityCount + 1))
+        for (let slot = 0; slot <= priorityCount; slot += 1) {
+          if (slot === discoveryPosition) {
+            mixed.push(discovery[discoveryIndex])
+            discoveryIndex += 1
+          } else {
+            mixed.push(priority[priorityIndex])
+            priorityIndex += 1
+          }
+        }
+      }
+
+      return mixed
+    }
+
+    const getCatalogFilterParams = () => {
+      const params = new URLSearchParams()
+      const query = searchInput.value.trim()
+      if (query) params.set('q', query)
+      if (selectedCategory !== 'all') params.set('category', selectedCategory)
+      if (typeFilter.value !== 'all') params.set('type', typeFilter.value)
+      if (validationFilter.value !== 'all') params.set('validation', validationFilter.value)
+      if (sortFilter.value !== 'recommended') params.set('sort', sortFilter.value)
+      return params
+    }
+
+    const getCatalogFilterSearch = () => {
+      const search = getCatalogFilterParams().toString()
+      return search ? `?${search}` : ''
+    }
+
+    const syncFiltersToUrl = () => {
+      const url = new URL(window.location.href)
+      catalogFilterParamNames.forEach((param) => url.searchParams.delete(param))
+      getCatalogFilterParams().forEach((value, param) => url.searchParams.set(param, value))
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`)
+    }
+
+    const compactNumber = (value) => {
+      if (value < 1000) return String(value)
+      if (value < 1000000) return `${(value / 1000).toFixed(1).replace(/\.0$/, '')}k`
+      return `${(value / 1000000).toFixed(1).replace(/\.0$/, '')}m`
+    }
+
+    const relativeDate = (value) => {
+      if (window.dshI18n) return window.dshI18n.relativeDate(value)
+      const date = new Date(value)
+      if (Number.isNaN(date.getTime())) return 'Unknown'
+      const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86400000))
+      if (days === 0) return 'Today'
+      if (days < 30) return `${days} days ago`
+      if (days < 365) return `${Math.floor(days / 30)} months ago`
+      return `${Math.floor(days / 365)} years ago`
+    }
+
+    const setText = (card, selector, value) => {
+      const target = card.querySelector(selector)
+      if (target) target.textContent = value
+    }
+
+    const createCard = (repository) => {
+      const card = sourceCard.cloneNode(true)
+      const category = categoryById.get(repository.category)
+      const projectType = typeById.get(repository.projectType)
+      const detailSearch = getCatalogFilterSearch()
+      const detailUrl = `${baseUrl}plugins/${repository.slug}${detailSearch}`
+      const searchable = [
+        repository.name,
+        repository.fullName,
+        repository.description,
+        repository.language || '',
+        ...repository.topics,
+      ].join(' ').toLocaleLowerCase('zh-CN')
+
+      card.dataset.search = searchable
+      card.dataset.category = repository.category
+      card.dataset.type = repository.projectType
+      card.dataset.validationStatus = repository.validation.overall
+      card.dataset.stars = String(repository.stars)
+      card.dataset.updated = repository.pushedAt
+      card.querySelector('[data-field="category-dot"]').style.setProperty('--category-color', category.color)
+      const categoryLabel = card.querySelector('[data-field="category"]')
+      categoryLabel.dataset.i18n = `category.${repository.category}`
+      setText(card, '[data-field="category"]', t(categoryLabel.dataset.i18n, {}, category.label))
+      const projectTypeLabel = card.querySelector('[data-field="project-type"]')
+      projectTypeLabel.dataset.i18n = `projectType.${repository.projectType}`
+      setText(card, '[data-field="project-type"]', t(projectTypeLabel.dataset.i18n, {}, projectType.label))
+      const validationLabel = card.querySelector('[data-field="validation-label"]')
+      validationLabel.dataset.i18n = `validation.status.${repository.validation.overall}`
+      setText(card, '[data-field="validation-label"]', t(validationLabel.dataset.i18n, {}, repository.validation.label))
+      setText(card, '[data-field="owner"]', repository.owner.login)
+      setText(card, '[data-field="description"]', repository.description)
+      setText(card, '[data-field="stars"]', compactNumber(repository.stars))
+      // 星级：50K+ = 5星 / 10K+ = 4星 / 5K+ = 3星 / 1K+ = 2星 / 500+ = 1星 / <500 = 0星
+      const starLevel = (n) => (n >= 50000 ? 5 : n >= 10000 ? 4 : n >= 5000 ? 3 : n >= 1000 ? 2 : n >= 500 ? 1 : 0)
+      const level = starLevel(repository.stars)
+      const starBox = card.querySelector('.project-card__stars')
+      if (starBox) {
+        const stars = [...starBox.querySelectorAll('.project-card__star')]
+        stars.forEach((star, i) => {
+          star.classList.toggle('is-filled', i < level)
+          star.classList.toggle('is-empty', i >= level)
+        })
+        starBox.hidden = level === 0
+      }
+      setText(card, '[data-field="forks"]', compactNumber(repository.forks))
+      setText(card, '[data-field="issues"]', compactNumber(repository.openIssues))
+      const updated = card.querySelector('[data-field="updated"]')
+      updated.dataset.i18nRelativeDate = repository.pushedAt
+      setText(card, '[data-field="updated"]', relativeDate(repository.pushedAt))
+
+      const avatar = card.querySelector('[data-field="avatar"]')
+      avatar.src = repository.owner.avatarUrl
+      avatar.alt = ''
+      const detailLink = card.querySelector('[data-field="detail-link"]')
+      detailLink.href = detailUrl
+      detailLink.textContent = repository.name
+      const openLink = card.querySelector('[data-field="open-link"]')
+      openLink.href = detailUrl
+      openLink.dataset.i18nAriaLabel = 'card.openDetails'
+      openLink.dataset.i18nParamName = repository.name
+      openLink.setAttribute('aria-label', t('card.openDetails', { name: repository.name }, `View ${repository.name} 详情`))
+
+      const validation = card.querySelector('[data-field="validation"]')
+      validation.dataset.tone = repository.validation.tone
+      validation.dataset.i18nValidationTitle = repository.validation.overall
+      validation.title = t('card.validationTitle', {
+        status: t(`validation.status.${repository.validation.overall}`, {}, repository.validation.label),
+      }, `Verification: ${repository.validation.label}`)
+      validation.querySelectorAll('[data-validation-step]').forEach((step) => {
+        step.dataset.status = repository.validation.stages[step.dataset.validationStep].status
+      })
+
+      const topicList = card.querySelector('[data-field="topics"]')
+      const sourceTopic = topicList.querySelector('span')
+      topicList.replaceChildren(...repository.topics.slice(0, 4).map((topic) => {
+        const item = sourceTopic.cloneNode(true)
+        item.textContent = topic
+        return item
+      }))
+      window.dshI18n?.translate(card)
+      return card
+    }
+
+    const getFilteredRepositories = () => {
+      const query = searchInput.value.trim().toLocaleLowerCase('zh-CN')
+      const selectedType = typeFilter.value
+      const selectedValidation = validationFilter.value
+      const filtered = repositories.filter((repository) => {
+        const searchable = [
+          repository.name,
+          repository.fullName,
+          repository.description,
+          repository.language || '',
+          ...repository.topics,
+        ].join(' ').toLocaleLowerCase('zh-CN')
+        return (!query || searchable.includes(query))
+          && (selectedCategory === 'all'
+            || (selectedCategory === 'verified'
+              ? repository.validation.overall === 'verified'
+              : repository.category === selectedCategory))
+          && (selectedType === 'all' || repository.projectType === selectedType)
+          && (selectedValidation === 'all' || repository.validation.overall === selectedValidation)
+      })
+
+      const compareStatus = (left, right) => {
+        const verifiedPriority = Number(right.verified) - Number(left.verified)
+        return verifiedPriority
+      }
+      const compareStars = (left, right) => (
+        right.stars - left.stars
+        || compareStatus(left, right)
+        || left.fullName.localeCompare(right.fullName)
+      )
+
+      if (sortFilter.value === 'recommended') {
+        const priority = filtered
+          .filter((repository) => repository.verified)
+          .sort(compareStars)
+        const discovery = filtered
+          .filter((repository) => !repository.verified)
+          .sort(compareStars)
+        return mixRecommendedRepositories(priority, discovery, createSeededRandom(recommendationSeed))
+      }
+
+      return filtered.sort((left, right) => {
+        const statusPriority = compareStatus(left, right)
+        if (sortFilter.value === 'updated') {
+          return Date.parse(right.pushedAt) - Date.parse(left.pushedAt)
+            || statusPriority
+            || left.fullName.localeCompare(right.fullName)
+        }
+        if (sortFilter.value === 'name') {
+          return left.name.localeCompare(right.name)
+            || statusPriority
+            || left.fullName.localeCompare(right.fullName)
+        }
+        return right.stars - left.stars
+          || statusPriority
+          || left.fullName.localeCompare(right.fullName)
+      })
+    }
+
+    const render = () => {
+      const filtered = getFilteredRepositories()
+      const visible = filtered.slice(0, visibleCount)
+      grid.replaceChildren(...visible.map(createCard))
+      resultCount.textContent = t('home.projectCount', { count: filtered.length }, `${filtered.length} projects`)
+      emptyState.hidden = filtered.length !== 0
+      grid.hidden = filtered.length === 0
+      const remaining = Math.max(0, filtered.length - visible.length)
+      loadMore.hidden = remaining === 0
+      remainingCount.textContent = String(remaining)
+    }
+
+    const resetAndRender = () => {
+      visibleCount = pageSize
+      render()
+    }
+
+    const commitFilters = () => {
+      syncFiltersToUrl()
+      resetAndRender()
+    }
+
+    const syncSelectValue = (select, target) => {
+      target.textContent = select.selectedOptions[0]?.textContent ?? ''
+    }
+
+    const setCategoryExpanded = (expanded) => {
+      if (!categoryFilterPanel || !categoryFilterToggle) return
+      categoryFilterPanel.classList.add('is-collapsible')
+      categoryFilterPanel.classList.toggle('is-expanded', expanded)
+      categoryFilterToggle.setAttribute('aria-expanded', String(expanded))
+      const labelKey = expanded ? 'home.collapseCategories' : 'home.expandCategories'
+      const fallback = expanded ? 'Collapse all / ' + totalCats + ' categories' : 'Expand all categories'
+      const label = t(labelKey, {}, fallback)
+      categoryFilterToggle.dataset.i18nAriaLabel = labelKey
+      categoryFilterToggle.dataset.i18nTitle = labelKey
+      categoryFilterToggle.setAttribute('aria-label', label)
+      categoryFilterToggle.setAttribute('title', label)
+    }
+
+    setCategoryExpanded(false)
+    categoryFilterToggle?.addEventListener('click', () => {
+      setCategoryExpanded(categoryFilterToggle.getAttribute('aria-expanded') !== 'true')
+    })
+
+    const restoreFiltersFromUrl = () => {
+      const filters = new URLSearchParams(window.location.search)
+      const requestedCategory = filters.get('category')
+      const requestedType = filters.get('type')
+      const requestedValidation = filters.get('validation')
+      const requestedSort = filters.get('sort')
+
+      searchInput.value = filters.get('q') ?? ''
+      selectedCategory = requestedCategory === 'verified' || categoryById.has(requestedCategory)
+        ? requestedCategory
+        : 'all'
+      typeFilter.value = typeById.has(requestedType) ? requestedType : 'all'
+      validationFilter.value = validationStatusIds.has(requestedValidation) ? requestedValidation : 'all'
+      sortFilter.value = sortIds.has(requestedSort) ? requestedSort : 'recommended'
+
+      categoryFilter.querySelectorAll('[data-category]').forEach((item) => {
+        item.classList.toggle('is-active', item.dataset.category === selectedCategory)
+      })
+      if (selectedCategory !== 'all') setCategoryExpanded(true)
+      syncSelectValue(typeFilter, typeFilterValue)
+      syncSelectValue(validationFilter, validationFilterValue)
+      syncSelectValue(sortFilter, sortFilterValue)
+    }
+
+    const localizeFilterOptions = () => {
+      typeFilter.querySelectorAll('[data-i18n-option]').forEach((option) => {
+        option.textContent = `${t(option.dataset.i18nOption)} · ${option.dataset.count}`
+      })
+      validationFilter.querySelectorAll('[data-i18n-option]').forEach((option) => {
+        option.textContent = `${t(option.dataset.i18nOption)} · ${option.dataset.count}`
+      })
+      syncSelectValue(typeFilter, typeFilterValue)
+      syncSelectValue(validationFilter, validationFilterValue)
+      syncSelectValue(sortFilter, sortFilterValue)
+    }
+
+    searchInput.addEventListener('input', commitFilters)
+    typeFilter.addEventListener('change', () => {
+      syncSelectValue(typeFilter, typeFilterValue)
+      commitFilters()
+    })
+    validationFilter.addEventListener('change', () => {
+      syncSelectValue(validationFilter, validationFilterValue)
+      commitFilters()
+    })
+    sortFilter.addEventListener('change', () => {
+      syncSelectValue(sortFilter, sortFilterValue)
+      commitFilters()
+    })
+    categoryFilter.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-category]')
+      if (!button) return
+      selectedCategory = button.dataset.category
+      categoryFilter.querySelectorAll('[data-category]').forEach((item) => {
+        item.classList.toggle('is-active', item === button)
+      })
+      commitFilters()
+    })
+    loadMore.addEventListener('click', () => {
+      visibleCount += pageSize
+      render()
+    })
+    clearFilters.addEventListener('click', () => {
+      searchInput.value = ''
+      typeFilter.value = 'all'
+      validationFilter.value = 'all'
+      sortFilter.value = 'recommended'
+      syncSelectValue(typeFilter, typeFilterValue)
+      syncSelectValue(validationFilter, validationFilterValue)
+      syncSelectValue(sortFilter, sortFilterValue)
+      selectedCategory = 'all'
+      categoryFilter.querySelectorAll('[data-category]').forEach((item) => {
+        item.classList.toggle('is-active', item.dataset.category === 'all')
+      })
+      commitFilters()
+      searchInput.focus()
+    })
+    document.addEventListener('keydown', (event) => {
+      if (event.key === '/' && document.activeElement !== searchInput) {
+        event.preventDefault()
+        searchInput.focus()
+      }
+      if (event.key === 'Escape' && document.activeElement === searchInput) {
+        searchInput.value = ''
+        searchInput.blur()
+        commitFilters()
+      }
+    })
+    document.addEventListener('dsh:locale-change', () => {
+      localizeFilterOptions()
+      render()
+    })
+    restoreFiltersFromUrl()
+    resetAndRender()
+  </script>
+
+  <div class="container">
+    <TrendChart />
+  </div>
+</BaseLayout>
+
+<style>
+  /* 最新手记轻量横条 */
+  .journal-strip {
+    margin-top: 28px;
+  }
+  .journal-strip__inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    background: var(--canvas-soft);
+    box-shadow: var(--shadow-card);
+  }
+  .journal-strip__label {
+    flex-shrink: 0;
+    margin: 0;
+  }
+  .journal-strip__items {
+    display: flex;
+    flex: 1;
+    gap: 20px;
+    min-width: 0;
+  }
+  .journal-strip__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .journal-strip__item:hover .journal-strip__title {
+    color: var(--accent-strong);
+  }
+  .journal-strip__cat {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    border-radius: 6px;
+    padding: 1px 7px;
+  }
+  .journal-strip__title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .journal-strip__more {
+    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent-strong);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .journal-strip__more:hover {
+    text-decoration: underline;
+  }
+  @media (max-width: 767px) {
+    .journal-strip__inner {
+      flex-wrap: wrap;
+    }
+    .journal-strip__items {
+      flex-direction: column;
+      gap: 6px;
+    }
+    .journal-strip__item {
+      flex: none;
+      width: 100%;
+    }
+  }
+  .catalog-tools {
+    position: sticky;
+    z-index: 10;
+    top: 72px;
+    margin-top: 24px;
+    scroll-margin-top: 90px;
+    padding-block: 4px;
+    background: transparent;
+  }
+  .catalog-tools .container {
+    background: var(--tools-background);
+    border: 1px solid var(--outline);
+    border-radius: var(--radius);
+    backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-card);
+    padding: 14px 16px;
+  }
+
+  .search-row {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) repeat(3, minmax(150px, auto));
+    gap: 8px;
+  }
+
+  .search-field,
+  .select-field {
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    gap: 10px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--canvas-soft);
+    box-shadow: var(--shadow-border);
+    color: var(--mute);
+    padding-inline: 14px;
+    transition: box-shadow 160ms ease;
+  }
+
+  .select-field {
+    position: relative;
+  }
+
+  .search-field:focus-within,
+  .select-field:focus-within {
+    box-shadow: var(--shadow-card-hover);
+  }
+
+  .search-field input {
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .search-field input {
+    width: 100%;
+  }
+
+  .search-field input::placeholder {
+    color: var(--mute);
+  }
+
+  .select-field select {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    border: 0;
+    appearance: none;
+    cursor: pointer;
+    opacity: 0;
+  }
+
+  .select-field > svg,
+  .select-value {
+    pointer-events: none;
+  }
+
+  .select-value {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    color: var(--ink);
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .category-filter-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: start;
+    padding-top: 12px;
+  }
+
+  .category-row {
+    display: flex;
+    max-height: none;
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow: hidden;
+    transition: max-height 180ms ease;
+  }
+
+  .category-filter-panel.is-collapsible:not(.is-expanded) .category-row {
+    max-height: 38px;
+  }
+
+  .category-filter-panel.is-collapsible.is-expanded .category-row {
+    max-height: 600px;
+  }
+
+  .category-filter-toggle {
+    display: none;
+    width: 38px;
+    min-height: 38px;
+    place-items: center;
+    border: 1px solid var(--outline);
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--body);
+    transition: border-color 160ms ease, background-color 160ms ease;
+  }
+
+  .category-filter-panel.is-collapsible .category-filter-toggle {
+    display: grid;
+  }
+
+  .category-filter-toggle:hover {
+    border-color: var(--outline-strong);
+    background: var(--canvas-soft);
+  }
+
+  .category-filter-toggle svg {
+    transition: transform 160ms ease;
+  }
+
+  .category-filter-panel.is-expanded .category-filter-toggle svg {
+    transform: rotate(180deg);
+  }
+
+  .category-filter {
+    display: inline-flex;
+    min-height: 38px;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--hairline);
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--body);
+    padding-inline: 12px;
+  }
+
+  .category-filter:hover,
+  .category-filter.is-active {
+    border-color: var(--outline-strong);
+    background: var(--canvas-soft);
+    color: var(--ink);
+  }
+
+  .category-filter i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--category-color);
+  }
+
+  .category-filter--verified i {
+    background: #9fdda9;
+  }
+
+  .category-filter__label {
+    color: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 20px;
+  }
+
+  .category-filter__count {
+    color: var(--mute);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+  }
+
+  .category-filter:hover .category-filter__count,
+  .category-filter.is-active .category-filter__count {
+    color: var(--body);
+  }
+
+  .catalog-results {
+    min-height: 70vh;
+    padding-block: 24px 64px;
+  }
+
+  .results-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding-block: 4px 20px;
+    color: var(--mute);
+    font-size: 12px;
+  }
+
+  .results-head p {
+    margin: 0;
+  }
+
+  .results-head p:last-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .results-head i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ffc285;
+  }
+
+  .project-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .load-row {
+    display: flex;
+    justify-content: center;
+    min-height: 96px;
+    padding-top: 32px;
+  }
+
+  .load-row button span {
+    color: var(--mute);
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+
+  .empty-state {
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    padding-block: 64px;
+    text-align: center;
+  }
+
+  .empty-state h2 {
+    margin: 12px 0 4px;
+    font-size: 28px;
+    font-weight: 400;
+  }
+
+  .empty-state > p:not(.mono-label) {
+    margin: 0 0 24px;
+    color: var(--mute);
+  }
+
+  @media (max-width: 1023px) {
+    .catalog-head__inner {
+      grid-template-columns: 1fr;
+      gap: 36px;
+    }
+
+    .project-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 767px) {
+    .catalog-head__art {
+      top: 34%;
+      left: -104px;
+      width: 440px;
+    }
+
+    .catalog-head__art-focus {
+      display: none;
+    }
+
+    .catalog-head__inner {
+      gap: 32px;
+      padding-block: 40px 32px;
+    }
+
+    .catalog-head__title h1 {
+      margin-block: 12px;
+      font-size: 48px;
+      line-height: 52px;
+    }
+
+    .catalog-head__title > p:last-child {
+      font-size: 16px;
+      line-height: 24px;
+    }
+
+    .catalog-stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .catalog-stats div:last-child {
+      grid-column: 1 / -1;
+      border-top: 1px solid var(--hairline);
+      border-left: 0;
+    }
+
+    .catalog-tools {
+      position: static;
+    }
+
+    .search-row {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .search-field {
+      grid-column: 1 / -1;
+    }
+
+    .search-field,
+    .select-field {
+      min-height: 48px;
+    }
+
+    .select-field select {
+      width: 100%;
+    }
+
+    .category-filter {
+      min-height: 44px;
+    }
+
+    .category-filter-panel.is-collapsible:not(.is-expanded) .category-row {
+      max-height: 44px;
+    }
+
+    .category-filter-toggle {
+      width: 44px;
+      min-height: 44px;
+    }
+
+    .results-head {
+      align-items: flex-start;
+    }
+
+    .results-head p:last-child {
+      max-width: 160px;
+      text-align: right;
+    }
+
+    .project-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* 插件/技能入口卡 */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</style>
