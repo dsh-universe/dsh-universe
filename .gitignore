@@ -33,3 +33,11 @@ docs/*
 .cursorrules
 validation-input/
 *.tgz
+
+# 站点内容数据（构建时生成，不公开）
+src/data/*.json
+public/catalog-data.json
+# 服务器部署配置（脱敏，不公开）
+deploy/
+# 内部监控页（不公开）
+public/monitor.html
