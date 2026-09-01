@@ -34,8 +34,6 @@ const serverTitle = (dictionaries.en?.[pageTitleKey] ?? title).replace(
 )
 const baseUrl = `${import.meta.env.BASE_URL.replace(/\/+$/, '')}/`
 const canonicalUrl = getCanonicalUrl(Astro.url)
-  ? JSON.stringify({ token: 'cefc4fa1bb984a789124d58b900f13b8' })
-  : null
 const serializedDictionaries = JSON.stringify(dictionaries).replace(/</g, '\\u003c')
 const THEME_STORAGE_KEY = 'dsh-theme'
 const COLOR_STORAGE_KEY = 'dsh-color'
